@@ -4,6 +4,47 @@
 
 This document provides a comprehensive design for fixing streaming errors in the web livestream application. The current implementation has several critical issues that prevent proper video streaming functionality, including video display problems, WebRTC configuration issues, media constraints conflicts, and error handling gaps.
 
+## Repository Type Analysis
+
+**Repository Classification: Full-Stack Application**
+
+This is a comprehensive full-stack web application with the following characteristics:
+
+**Frontend Architecture:**
+
+- React.js 18 application with sophisticated component structure
+- 7 main component categories (Chat, Home, Modals, QuickJoin, Stream, StreamRoom, UI)
+- Custom hooks for complex logic (useSocket, useWebRTC, useStreamRoom)
+- Advanced WebRTC implementation with peer-to-peer streaming
+- Real-time state management and Socket.io integration
+
+**Backend Architecture:**
+
+- Node.js/Express server with Socket.io for real-time communication
+- WebRTC signaling server handling offers, answers, and ICE candidates
+- Room management system with user permissions
+- In-memory data storage for rooms and users
+- RESTful API endpoints for room information
+
+**Complexity Assessment:**
+
+- **High Complexity**: Not a simple project
+- Advanced real-time features (live streaming, chat, WebRTC)
+- Multiple interconnected systems (video streaming, chat, room management)
+- Complex state management across client-server architecture
+- Professional component organization and modular design
+
+**Key Technical Features:**
+
+- WebRTC peer-to-peer video streaming
+- Real-time bidirectional communication via Socket.io
+- Dynamic room creation and management
+- User permission system (streamers vs viewers)
+- Advanced error handling and loading states
+- Responsive UI with multiple interactive modals
+
+This application requires a comprehensive full-stack documentation approach covering both frontend component architecture and backend service design.
+
 ## Technology Stack Assessment
 
 **Current Stack:**
@@ -13,7 +54,262 @@ This document provides a comprehensive design for fixing streaming errors in the
 - Real-time Communication: Socket.io for signaling, WebRTC for media streaming
 - Styling: CSS3 with forced visibility styles
 
-## Architecture
+## Frontend Architecture
+
+### Component Architecture Analysis
+
+#### Current Component Hierarchy
+
+```mermaid
+graph TD
+    A[App.js] --> B[StreamRoom]
+    B --> C[VideoPlayer]
+    B --> D[StreamControls]
+    B --> E[RoomHeader]
+    B --> F[ChatSection]
+    B --> G[Modals]
+
+    C --> H[Video Element]
+    D --> I[Start/Stop Controls]
+    D --> J[Auto-Accept Toggle]
+    F --> K[ChatInput]
+    F --> L[ChatMessage]
+
+    G --> M[ShareModal]
+    G --> N[AcceptUsersModal]
+    G --> O[WaitingModal]
+```
+
+#### Component State Management Issues
+
+**Problem: Video Display State Conflicts**
+
+- VideoPlayer component has conflicting visibility logic
+- Manual DOM manipulation fighting with React state
+- CSS classes applied inconsistently
+
+**Current VideoPlayer Logic Issues:**
+
+```javascript
+// PROBLEMATIC CURRENT LOGIC
+const shouldShowVideo = () => {
+  if (isStreamer) {
+    return isStreaming && hasSrcObject; // Sometimes false when should be true
+  }
+  return hasSrcObject && isVideoReady; // readyState check too strict
+};
+```
+
+**Solution: Simplified State-Driven Visibility**
+
+```javascript
+// IMPROVED LOGIC
+const shouldShowVideo = () => {
+  // Show video if there's a valid stream source
+  return !!videoRef?.current?.srcObject;
+};
+
+const getVideoClassName = () => {
+  const baseClass = "video-element";
+  const visibilityClass = shouldShowVideo() ? "video-visible" : "video-hidden";
+  return `${baseClass} ${visibilityClass}`;
+};
+```
+
+#### Hooks Architecture Improvements
+
+**useWebRTC Hook Enhancement**
+
+Current Issues:
+
+- Inconsistent media constraints
+- Poor error handling
+- Manual video element manipulation
+
+Fixed Implementation:
+
+```javascript
+const useWebRTC = (socket, roomId) => {
+  const [streamState, setStreamState] = useState({
+    status: "idle", // idle, requesting, streaming, error, stopping
+    error: null,
+    mediaStream: null,
+  });
+
+  const [videoConstraints] = useState({
+    video: {
+      width: { ideal: 640, min: 320, max: 1280 },
+      height: { ideal: 480, min: 240, max: 720 },
+      frameRate: { ideal: 15, min: 10, max: 30 },
+      facingMode: "user",
+    },
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    },
+  });
+
+  const startStream = useCallback(
+    async (videoRef) => {
+      try {
+        setStreamState((prev) => ({
+          ...prev,
+          status: "requesting",
+          error: null,
+        }));
+
+        const mediaStream = await navigator.mediaDevices.getUserMedia(
+          videoConstraints
+        );
+
+        if (videoRef?.current) {
+          videoRef.current.srcObject = mediaStream;
+          // Let React handle visibility through state
+        }
+
+        setStreamState({
+          status: "streaming",
+          error: null,
+          mediaStream,
+        });
+
+        await createPeerConnection(mediaStream);
+        return mediaStream;
+      } catch (error) {
+        const errorInfo = handleStreamError(error);
+        setStreamState({
+          status: "error",
+          error: errorInfo,
+          mediaStream: null,
+        });
+        throw error;
+      }
+    },
+    [videoConstraints, createPeerConnection]
+  );
+
+  return {
+    streamState,
+    startStream,
+    stopStream,
+    // ... other methods
+  };
+};
+```
+
+### State Management Strategy
+
+#### Video Display State Machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Requesting : startStream()
+    Requesting --> HasStream : getUserMedia success
+    Requesting --> Error : getUserMedia failed
+    HasStream --> VideoReady : video.loadeddata
+    VideoReady --> Displaying : render video
+    Displaying --> Stopping : stopStream()
+    Stopping --> Idle : cleanup complete
+    Error --> Idle : retry/reset
+    Error --> Requesting : retry with different constraints
+```
+
+#### Stream Error Types and Handling
+
+```javascript
+const StreamErrorTypes = {
+  PERMISSION_DENIED: "NotAllowedError",
+  DEVICE_NOT_FOUND: "NotFoundError",
+  DEVICE_BUSY: "NotReadableError",
+  OVERCONSTRAINED: "OverconstrainedError",
+  UNKNOWN: "UnknownError",
+};
+
+const handleStreamError = (error) => {
+  const errorMap = {
+    [StreamErrorTypes.PERMISSION_DENIED]: {
+      message:
+        "Camera/microphone access denied. Please allow permissions and try again.",
+      recoverable: true,
+      action: "request_permission",
+    },
+    [StreamErrorTypes.DEVICE_NOT_FOUND]: {
+      message: "No camera or microphone found. Please connect a device.",
+      recoverable: false,
+      action: "check_devices",
+    },
+    [StreamErrorTypes.DEVICE_BUSY]: {
+      message: "Camera/microphone is being used by another application.",
+      recoverable: true,
+      action: "close_other_apps",
+    },
+    [StreamErrorTypes.OVERCONSTRAINED]: {
+      message: "Camera settings not supported. Trying with lower quality.",
+      recoverable: true,
+      action: "fallback_constraints",
+    },
+  };
+
+  return (
+    errorMap[error.name] || {
+      message: `Stream error: ${error.message}`,
+      recoverable: true,
+      action: "retry",
+    }
+  );
+};
+```
+
+#### CSS Styling Improvements
+
+**Problem: Conflicting CSS Rules**
+Current CSS has multiple conflicting rules causing display issues:
+
+```css
+/* PROBLEMATIC CURRENT STYLES */
+.video-element {
+  display: block !important; /* Conflicts with hidden class */
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.video-element.hidden {
+  display: none !important; /* Fights with above */
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+```
+
+**Fixed CSS Implementation:**
+
+```css
+/* CLEAN, NON-CONFLICTING STYLES */
+.video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: opacity 0.3s ease;
+}
+
+.video-visible {
+  opacity: 1;
+  visibility: visible;
+  z-index: 1;
+}
+
+.video-hidden {
+  opacity: 0;
+  visibility: hidden;
+  z-index: -1;
+}
+
+/* Remove all !important declarations */
+```
 
 ### Current System Flow
 
