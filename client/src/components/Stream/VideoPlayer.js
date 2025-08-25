@@ -66,34 +66,15 @@ const VideoPlayer = ({
   };
 
   const shouldShowVideo = () => {
-    if (!videoRef?.current) {
-      console.log("🔵 VideoPlayer: Video ref not available");
-      return false;
-    }
+    // Simple check: show video if there's a valid stream source
+    return !!videoRef?.current?.srcObject;
+  };
 
-    const hasSrcObject = !!videoRef.current.srcObject;
-    const isVideoReady = videoRef.current.readyState >= 2;
-
-    if (isStreamer) {
-      // Force show video when streaming and has srcObject
-      const result = isStreaming && hasSrcObject;
-      console.log("🔵 VideoPlayer: Streamer visibility check", {
-        isStreaming,
-        hasSrcObject,
-        isVideoReady,
-        result,
-      });
-      return result;
-    }
-
-    // For viewers, show video if there's a stream (srcObject exists)
-    const result = hasSrcObject && isVideoReady;
-    console.log("🔵 VideoPlayer: Viewer visibility check", {
-      hasSrcObject,
-      isVideoReady,
-      result,
-    });
-    return result;
+  const getVideoClassName = () => {
+    const baseClass = "video-element";
+    const debugClass = process.env.NODE_ENV === "development" ? "video-element-debug" : "";
+    const visibilityClass = shouldShowVideo() ? "video-visible" : "video-hidden";
+    return `${baseClass} ${debugClass} ${visibilityClass}`.trim();
   };
 
   const shouldShowPlaceholder = () => {
@@ -108,9 +89,7 @@ const VideoPlayer = ({
     <div className={`video-container ${className}`}>
       <video
         ref={videoRef}
-        className={`video-element ${
-          process.env.NODE_ENV === "development" ? "video-element-debug" : ""
-        } ${shouldShowVideo() ? "" : "hidden"}`}
+        className={getVideoClassName()}
         autoPlay
         muted={isStreamer} // Mute local video to prevent feedback
         playsInline
@@ -130,9 +109,7 @@ const VideoPlayer = ({
           <div>Streaming: {isStreaming.toString()}</div>
           <div>HasSrc: {(!!videoRef?.current?.srcObject).toString()}</div>
           <div>ShouldShow: {shouldShowVideo().toString()}</div>
-          <div>
-            VideoReady: {(videoRef?.current?.readyState >= 2).toString()}
-          </div>
+          <div>ClassName: {getVideoClassName()}</div>
         </div>
       )}
     </div>

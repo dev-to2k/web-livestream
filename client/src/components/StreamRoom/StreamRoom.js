@@ -82,42 +82,29 @@ const StreamRoom = ({ username }) => {
       setStreamError(null);
       console.log("🔵 CLIENT: Starting stream...");
 
-      // Force video element to be visible before starting stream
-      const videoElement = localVideoRef.current;
-      if (videoElement) {
-        videoElement.style.display = "block";
-        videoElement.classList.remove("hidden");
-        console.log("🔵 CLIENT: Video element display forced to visible");
-      }
-
       await webRTC.startStream(localVideoRef);
       setIsStreaming(true);
       console.log("🔵 CLIENT: Stream started successfully");
 
-      // Force video playback again after stream starts
-      if (videoElement && videoElement.srcObject) {
-        try {
-          await videoElement.play();
-          console.log("🔵 CLIENT: Video playback forced after stream start");
-        } catch (playError) {
-          console.warn("🟡 CLIENT: Forced video playback failed:", playError);
-        }
-      }
-
       // Notify user of success
-      if (window.confirm) {
-        // Small delay to ensure video is showing before notification
-        setTimeout(() => {
-          console.log("🔵 CLIENT: Stream is now live!");
-        }, 1000);
-      }
+      console.log("🔵 CLIENT: Stream is now live!");
     } catch (error) {
       console.error("🔴 CLIENT: Failed to start stream:", error);
-      setStreamError(error.message);
+      
+      // Handle both enhanced error objects and regular errors
+      const errorMessage = error.message || "Lỗi không xác định khi bắt đầu stream";
+      const userAction = error.userAction || "Thử lại hoặc làm mới trang";
+      
+      setStreamError({
+        message: errorMessage,
+        userAction: userAction,
+        recoverable: error.recoverable !== false,
+        timestamp: error.timestamp || new Date().toISOString()
+      });
       setIsStreaming(false);
 
-      // Show user-friendly error message
-      alert(`Lỗi khi bắt đầu stream: ${error.message}`);
+      // Show user-friendly error message with action guidance
+      alert(`${errorMessage}\n\nHướng dẫn: ${userAction}`);
     } finally {
       setIsLoadingStream(false);
     }

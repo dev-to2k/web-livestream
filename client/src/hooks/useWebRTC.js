@@ -1,22 +1,44 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
+import { RTC_CONFIG, MEDIA_CONSTRAINTS } from "../utils/constants";
+import { handleStreamError, createRetryStrategy } from "../utils/streamErrors";
 
 const useWebRTC = (socket, roomId) => {
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
+  const [connectionState, setConnectionState] = useState('idle'); // idle, connecting, connected, failed, closed
+  const [streamState, setStreamState] = useState('idle'); // idle, requesting, active, error
 
-  // WebRTC configuration
-  const rtcConfig = {
-    iceServers: [
-      { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun1.l.google.com:19302" },
-    ],
-  };
-
+  // Use standardized RTC configuration
   const createPeerConnection = useCallback(
     async (mediaStream) => {
       if (!socket) return;
 
-      const peerConnection = new RTCPeerConnection(rtcConfig);
+      const peerConnection = new RTCPeerConnection(RTC_CONFIG);
+      peerConnectionRef.current = peerConnection;
+      
+      setConnectionState('connecting');
+
+      // Monitor connection state changes
+      peerConnection.onconnectionstatechange = () => {
+        console.log(`🔵 WebRTC: Connection state changed to ${peerConnection.connectionState}`);
+        setConnectionState(peerConnection.connectionState);
+        
+        if (peerConnection.connectionState === 'failed') {
+          console.error('🔴 WebRTC: Connection failed');
+          // Attempt to restart ICE
+          peerConnection.restartIce();
+        }
+      };
+      
+      // Monitor ICE connection state
+      peerConnection.oniceconnectionstatechange = () => {
+        console.log(`🔵 WebRTC: ICE connection state: ${peerConnection.iceConnectionState}`);
+      };
+      
+      // Monitor ICE gathering state
+      peerConnection.onicegatheringstatechange = () => {
+        console.log(`🔵 WebRTC: ICE gathering state: ${peerConnection.iceGatheringState}`);
+      };
       peerConnectionRef.current = peerConnection;
 
       // Add local stream to peer connection
@@ -47,7 +69,7 @@ const useWebRTC = (socket, roomId) => {
     async (offer, streamerId, remoteVideoRef) => {
       if (!socket) return;
 
-      const peerConnection = new RTCPeerConnection(rtcConfig);
+      const peerConnection = new RTCPeerConnection(RTC_CONFIG);
       peerConnectionRef.current = peerConnection;
 
       // Handle incoming stream
@@ -91,9 +113,12 @@ const useWebRTC = (socket, roomId) => {
 
   const startStream = useCallback(
     async (localVideoRef) => {
-      try {
+      setStreamState('requesting');
+      const retryStrategy = createRetryStrategy(3);
+      
+      const attemptStream = async (constraints) => {
         console.log(
-          "🔵 useWebRTC: Starting stream, requesting media access..."
+          "🔵 useWebRTC: Attempting stream with constraints:", constraints
         );
 
         // Check if getUserMedia is supported
@@ -103,14 +128,7 @@ const useWebRTC = (socket, roomId) => {
           );
         }
 
-        const mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width: { ideal: 640, max: 1280 },
-            height: { ideal: 480, max: 720 },
-            frameRate: { ideal: 15, max: 30 },
-          },
-          audio: true,
-        });
+        const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
 
         console.log("🔵 useWebRTC: Media stream obtained:", mediaStream);
         console.log(
@@ -128,7 +146,7 @@ const useWebRTC = (socket, roomId) => {
           localVideoRef.current.srcObject = mediaStream;
           console.log("🔵 useWebRTC: Video element srcObject set");
 
-          // Force video to play
+          // Attempt to play video
           try {
             await localVideoRef.current.play();
             console.log("🔵 useWebRTC: Video element playing");
@@ -141,41 +159,90 @@ const useWebRTC = (socket, roomId) => {
         }
 
         await createPeerConnection(mediaStream);
+        setStreamState('active');
         return mediaStream;
+      };
+
+      try {
+        // First attempt with optimal constraints
+        return await attemptStream(MEDIA_CONSTRAINTS);
       } catch (error) {
-        console.error("🔴 useWebRTC: Error accessing media devices:", error);
-
-        let errorMessage = "Không thể truy cập camera/microphone. ";
-
-        if (error.name === "NotAllowedError") {
-          errorMessage +=
-            "Vui lòng cho phép truy cập camera và microphone trong trình duyệt.";
-        } else if (error.name === "NotFoundError") {
-          errorMessage += "Không tìm thấy camera hoặc microphone.";
-        } else if (error.name === "NotReadableError") {
-          errorMessage +=
-            "Camera hoặc microphone đang được sử dụng bởi ứng dụng khác.";
-        } else {
-          errorMessage += error.message || "Lỗi không xác định.";
+        console.error("🔴 useWebRTC: Primary attempt failed:", error);
+        
+        const errorInfo = handleStreamError(error);
+        
+        if (retryStrategy.shouldRetry(error)) {
+          const nextAttempt = retryStrategy.getNextAttempt();
+          
+          if (nextAttempt) {
+            console.log(`🟡 useWebRTC: Retrying with fallback constraints after ${nextAttempt.delay}ms`);
+            
+            // Wait before retry
+            await new Promise(resolve => setTimeout(resolve, nextAttempt.delay));
+            
+            try {
+              return await attemptStream(nextAttempt.constraints);
+            } catch (retryError) {
+              console.error("🔴 useWebRTC: Retry attempt failed:", retryError);
+              
+              // Try one more time with basic constraints
+              const finalAttempt = retryStrategy.getNextAttempt();
+              if (finalAttempt) {
+                console.log(`🟡 useWebRTC: Final attempt with basic constraints after ${finalAttempt.delay}ms`);
+                await new Promise(resolve => setTimeout(resolve, finalAttempt.delay));
+                
+                try {
+                  return await attemptStream(finalAttempt.constraints);
+                } catch (finalError) {
+                  console.error("🔴 useWebRTC: All attempts failed:", finalError);
+                  setStreamState('error');
+                  throw handleStreamError(finalError);
+                }
+              }
+              
+              throw handleStreamError(retryError);
+            }
+          }
         }
-
-        throw new Error(errorMessage);
+        
+        setStreamState('error');
+        throw errorInfo;
       }
     },
     [createPeerConnection]
   );
 
   const stopStream = useCallback(() => {
+    console.log('🔵 useWebRTC: Stopping stream and cleaning up resources');
+    
+    // Stop all media tracks
     if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => track.stop());
+      localStreamRef.current.getTracks().forEach((track) => {
+        track.stop();
+        console.log(`🔵 useWebRTC: Stopped ${track.kind} track`);
+      });
       localStreamRef.current = null;
     }
 
+    // Close peer connection
     if (peerConnectionRef.current) {
       peerConnectionRef.current.close();
       peerConnectionRef.current = null;
+      console.log('🔵 useWebRTC: Peer connection closed');
     }
+    
+    // Reset states
+    setStreamState('idle');
+    setConnectionState('idle');
   }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      console.log('🔵 useWebRTC: Component unmounting, cleaning up');
+      stopStream();
+    };
+  }, [stopStream]);
 
   return {
     startStream,
@@ -184,6 +251,11 @@ const useWebRTC = (socket, roomId) => {
     handleAnswer,
     handleIceCandidate,
     peerConnection: peerConnectionRef.current,
+    connectionState,
+    streamState,
+    isStreaming: streamState === 'active',
+    isConnecting: connectionState === 'connecting',
+    hasError: streamState === 'error',
   };
 };
 

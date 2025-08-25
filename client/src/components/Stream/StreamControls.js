@@ -55,9 +55,33 @@ const StreamControls = ({
       {/* Error message */}
       {streamError && (
         <div className="stream-error">
-          <p style={{ color: "#ff6b6b", margin: "10px 0", fontSize: "14px" }}>
-            ❌ {streamError}
-          </p>
+          <div className="error-message">
+            ❌ {typeof streamError === 'object' ? streamError.message : streamError}
+          </div>
+          {typeof streamError === 'object' && streamError.userAction && (
+            <div className="error-action">
+              <strong>Hướng dẫn:</strong> {streamError.userAction}
+            </div>
+          )}
+          {typeof streamError === 'object' && streamError.recoverable && (
+            <button 
+              className="retry-btn" 
+              onClick={onStartStream}
+              disabled={isLoadingStream}
+              style={{
+                marginTop: '10px',
+                padding: '5px 15px',
+                background: '#ff6b6b',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
+            >
+              Thử lại
+            </button>
+          )}
         </div>
       )}
     </>

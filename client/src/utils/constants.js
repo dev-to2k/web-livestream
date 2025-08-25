@@ -17,17 +17,19 @@ export const ROOM_CONFIG = {
   MAX_MESSAGE_LENGTH: 200,
 };
 
-// Media constraints
+// Media constraints - optimized for compatibility and performance
 export const MEDIA_CONSTRAINTS = {
   video: {
-    width: { ideal: 1280 },
-    height: { ideal: 720 },
-    frameRate: { ideal: 30 },
+    width: { ideal: 640, min: 320, max: 1280 },
+    height: { ideal: 480, min: 240, max: 720 },
+    frameRate: { ideal: 15, min: 10, max: 30 },
+    facingMode: "user",
   },
   audio: {
     echoCancellation: true,
     noiseSuppression: true,
     autoGainControl: true,
+    sampleRate: 44100,
   },
 };
 

@@ -283,6 +283,439 @@ Current CSS has multiple conflicting rules causing display issues:
 ```
 
 **Fixed CSS Implementation:**
+```css
+/* CLEAN, NON-CONFLICTING STYLES */
+.video-element {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: opacity 0.3s ease;
+}
+
+.video-visible {
+  opacity: 1;
+  visibility: visible;
+  z-index: 1;
+}
+
+.video-hidden {
+  opacity: 0;
+  visibility: hidden;
+  z-index: -1;
+}
+
+/* Remove all !important declarations */
+```
+
+## Backend Architecture
+
+### WebRTC Signaling Server Enhancement
+
+#### Current Signaling Flow Issues
+```mermaid
+sequenceDiagram
+    participant S as Streamer
+    participant Server as Socket.io Server
+    participant V as Viewer
+    
+    S->>Server: offer
+    Server->>V: offer (with streamerId)
+    V->>Server: answer
+    Server->>S: answer
+    
+    Note over S,V: ICE candidates exchange
+    S->>Server: ice-candidate
+    Server->>V: ice-candidate
+    V->>Server: ice-candidate
+    Server->>S: ice-candidate
+    
+    Note over S,V: Current issues:
+    Note over S,V: - No connection state tracking
+    Note over S,V: - Missing error handling
+    Note over S,V: - Race conditions possible
+```
+
+#### Enhanced Signaling Implementation
+
+**Connection State Tracking:**
+```javascript
+// Enhanced server connection management
+const connectionStates = new Map(); // socketId -> connectionInfo
+
+const updateConnectionState = (socketId, state) => {
+  const current = connectionStates.get(socketId) || {};
+  connectionStates.set(socketId, {
+    ...current,
+    ...state,
+    lastUpdate: Date.now()
+  });
+};
+
+// Enhanced offer handling
+socket.on("offer", ({ offer, roomId }) => {
+  console.log("🔵 SERVER: Received offer from", socket.id);
+  
+  updateConnectionState(socket.id, {
+    role: 'streamer',
+    roomId,
+    offerSent: true,
+    status: 'offering'
+  });
+  
+  socket.to(roomId).emit("offer", { 
+    offer, 
+    streamerId: socket.id,
+    timestamp: Date.now()
+  });
+// Enhanced answer handling
+socket.on("answer", ({ answer, streamerId }) => {
+  console.log("🔵 SERVER: Received answer from", socket.id, "to", streamerId);
+  
+  updateConnectionState(socket.id, {
+    role: 'viewer',
+    streamerId,
+    answerSent: true,
+    status: 'answering'
+  });
+  
+  updateConnectionState(streamerId, {
+    status: 'connected',
+    connectedViewers: (connectionStates.get(streamerId)?.connectedViewers || 0) + 1
+  });
+  
+  socket.to(streamerId).emit("answer", { 
+    answer, 
+    viewerId: socket.id,
+    timestamp: Date.now()
+  });
+});
+
+// Connection health monitoring
+socket.on("connection-health", ({ status, streamerId }) => {
+  console.log("🔵 SERVER: Connection health update", status);
+  
+  if (status === 'failed' || status === 'disconnected') {
+    // Handle connection failure
+    handleConnectionFailure(socket.id, streamerId);
+  }
+});
+
+const handleConnectionFailure = (viewerId, streamerId) => {
+  // Notify both parties
+  socket.to(viewerId).emit("connection-failed", { streamerId });
+  socket.to(streamerId).emit("viewer-disconnected", { viewerId });
+  
+  // Update connection states
+  updateConnectionState(viewerId, { status: 'failed' });
+  const streamerState = connectionStates.get(streamerId);
+  if (streamerState) {
+    updateConnectionState(streamerId, {
+      connectedViewers: Math.max(0, (streamerState.connectedViewers || 1) - 1)
+    });
+  }
+};
+```
+
+#### Room Management Enhancement
+
+**Enhanced Room Management:**
+```javascript
+const enhancedRooms = new Map(); // roomId -> roomInfo
+
+const createRoom = (roomId, streamerId, username) => {
+  const room = {
+    id: roomId,
+    streamer: { 
+      id: streamerId, 
+      username,
+      connectionState: 'active',
+      startTime: Date.now()
+    },
+    viewers: new Map(),
+    messages: [],
+    autoAccept: true,
+    streamStats: {
+      totalViewers: 0,
+      currentViewers: 0,
+      averageViewTime: 0
+    },
+    connectionHealth: {
+      lastPing: Date.now(),
+      consecutiveFailures: 0,
+      status: 'healthy'
+    }
+  };
+  
+  enhancedRooms.set(roomId, room);
+  return room;
+};
+```
+
+### Error Recovery Mechanisms
+
+#### Automatic Reconnection Logic
+```javascript
+// Client-side reconnection handling
+socket.on('streamer-disconnected', ({ roomId }) => {
+  console.log('🟡 CLIENT: Streamer disconnected, attempting reconnection...');
+  
+  let reconnectAttempts = 0;
+  const maxReconnectAttempts = 5;
+  const reconnectInterval = 2000;
+  
+  const attemptReconnection = () => {
+    if (reconnectAttempts >= maxReconnectAttempts) {
+      setStreamError('Streamer disconnected. Please try joining again later.');
+      return;
+    }
+    
+    reconnectAttempts++;
+    socket.emit('rejoin-room', { roomId });
+    
+    setTimeout(() => {
+      if (!isConnected) {
+        attemptReconnection();
+      }
+    }, reconnectInterval * reconnectAttempts);
+  };
+  
+  attemptReconnection();
+});
+```
+
+## Testing Strategy
+
+### Unit Testing Focus Areas
+
+#### Stream Management Testing
+```javascript
+// Test cases for useWebRTC hook
+describe('useWebRTC Hook', () => {
+  test('should handle getUserMedia success', async () => {
+    const mockStream = { getTracks: () => [] };
+    navigator.mediaDevices.getUserMedia = jest.fn().resolves(mockStream);
+    
+    const { result } = renderHook(() => useWebRTC(mockSocket, 'room123'));
+    
+    await act(async () => {
+      await result.current.startStream(mockVideoRef);
+    });
+    
+    expect(result.current.streamState.status).toBe('streaming');
+    expect(result.current.streamState.mediaStream).toBe(mockStream);
+  });
+  
+  test('should handle permission denied error', async () => {
+    const permissionError = new Error('Permission denied');
+    permissionError.name = 'NotAllowedError';
+    navigator.mediaDevices.getUserMedia = jest.fn().rejects(permissionError);
+    
+    const { result } = renderHook(() => useWebRTC(mockSocket, 'room123'));
+    
+    await act(async () => {
+      try {
+        await result.current.startStream(mockVideoRef);
+      } catch (error) {
+        expect(error.name).toBe('NotAllowedError');
+      }
+    });
+    
+    expect(result.current.streamState.status).toBe('error');
+    expect(result.current.streamState.error.action).toBe('request_permission');
+  });
+});
+```
+
+#### Video Display Testing
+```javascript
+describe('VideoPlayer Component', () => {
+  test('should show video when stream is available', () => {
+    const mockVideoRef = {
+      current: {
+        srcObject: { getTracks: () => [{}] }
+      }
+    };
+    
+    render(
+      <VideoPlayer 
+        videoRef={mockVideoRef}
+        isStreamer={true}
+        isStreaming={true}
+      />
+    );
+    
+    const videoElement = screen.getByRole('video');
+    expect(videoElement).toHaveClass('video-visible');
+    expect(videoElement).not.toHaveClass('video-hidden');
+  });
+  
+  test('should show placeholder when no stream', () => {
+    const mockVideoRef = { current: { srcObject: null } };
+    
+    render(
+      <VideoPlayer 
+        videoRef={mockVideoRef}
+        isStreamer={true}
+        isStreaming={false}
+      />
+    );
+    
+    expect(screen.getByText(/Nhấn "Bắt đầu Stream"/)).toBeInTheDocument();
+  });
+});
+```
+
+### Integration Testing
+
+#### End-to-End Stream Testing
+```javascript
+describe('Complete Streaming Flow', () => {
+  test('streamer can start stream and viewer can connect', async () => {
+    // Setup streamer
+    const streamerSocket = io('http://localhost:5000');
+    const viewerSocket = io('http://localhost:5000');
+    
+    // Streamer joins room
+    streamerSocket.emit('join-room', {
+      roomId: 'test123',
+      username: 'streamer',
+      isStreamer: true
+    });
+    
+    // Wait for room creation
+    await new Promise(resolve => {
+      streamerSocket.on('streamer-status', (data) => {
+        expect(data.isStreamer).toBe(true);
+        resolve();
+      });
+    });
+    
+    // Viewer joins room
+    viewerSocket.emit('join-room', {
+      roomId: 'test123',
+      username: 'viewer',
+      isStreamer: false
+    });
+    
+    // Test WebRTC signaling
+    const mockOffer = { type: 'offer', sdp: 'mock-sdp' };
+    streamerSocket.emit('offer', { offer: mockOffer, roomId: 'test123' });
+    
+    await new Promise(resolve => {
+      viewerSocket.on('offer', ({ offer, streamerId }) => {
+        expect(offer).toEqual(mockOffer);
+        expect(streamerId).toBe(streamerSocket.id);
+        resolve();
+      });
+    });
+  });
+});
+```
+
+## Performance Optimizations
+
+### Video Quality Management
+
+#### Adaptive Quality Implementation
+```javascript
+const useAdaptiveQuality = (peerConnection) => {
+  const [currentQuality, setCurrentQuality] = useState('medium');
+  const [networkStats, setNetworkStats] = useState({});
+  
+  const qualityProfiles = {
+    low: {
+      video: { width: 320, height: 240, frameRate: 15 },
+      audio: { sampleRate: 22050 }
+    },
+    medium: {
+      video: { width: 640, height: 480, frameRate: 20 },
+      audio: { sampleRate: 44100 }
+    },
+    high: {
+      video: { width: 1280, height: 720, frameRate: 30 },
+      audio: { sampleRate: 48000 }
+    }
+  };
+  
+  const monitorConnection = useCallback(() => {
+    if (!peerConnection) return;
+    
+    peerConnection.getStats().then(stats => {
+      stats.forEach(report => {
+        if (report.type === 'inbound-rtp') {
+          const packetsLost = report.packetsLost || 0;
+          const packetsReceived = report.packetsReceived || 0;
+          const lossRate = packetsLost / (packetsLost + packetsReceived);
+          
+          setNetworkStats(prev => ({ ...prev, lossRate }));
+          
+          // Adjust quality based on loss rate
+          if (lossRate > 0.05 && currentQuality !== 'low') {
+            setCurrentQuality('low');
+          } else if (lossRate < 0.01 && currentQuality !== 'high') {
+            setCurrentQuality('high');
+          }
+        }
+      });
+    });
+  }, [peerConnection, currentQuality]);
+  
+  useEffect(() => {
+    const interval = setInterval(monitorConnection, 5000);
+    return () => clearInterval(interval);
+  }, [monitorConnection]);
+  
+  return { currentQuality, qualityProfiles, networkStats };
+};
+```
+
+### Resource Management
+
+#### Memory Leak Prevention
+```javascript
+const useResourceCleanup = () => {
+  const resourcesRef = useRef({
+    mediaStreams: new Set(),
+    peerConnections: new Set(),
+    eventListeners: new Map()
+  });
+  
+  const addResource = useCallback((type, resource) => {
+    resourcesRef.current[type].add(resource);
+  }, []);
+  
+  const cleanupAll = useCallback(() => {
+    // Cleanup media streams
+    resourcesRef.current.mediaStreams.forEach(stream => {
+      stream.getTracks().forEach(track => track.stop());
+    });
+    
+    // Cleanup peer connections
+    resourcesRef.current.peerConnections.forEach(pc => {
+      pc.close();
+    });
+    
+    // Remove event listeners
+    resourcesRef.current.eventListeners.forEach((cleanup, element) => {
+      cleanup();
+    });
+    
+    // Clear sets
+    resourcesRef.current.mediaStreams.clear();
+    resourcesRef.current.peerConnections.clear();
+    resourcesRef.current.eventListeners.clear();
+  }, []);
+  
+  useEffect(() => {
+    return cleanupAll; // Cleanup on unmount
+  }, [cleanupAll]);
+  
+  return { addResource, cleanupAll };
+};
+```
 
 ```css
 /* CLEAN, NON-CONFLICTING STYLES */
