@@ -37,7 +37,7 @@ const StreamControls = ({
           >
             {isLoadingStream ? (
               <>
-                <Spinner size="small" />
+                <Spinner size="small" containerType="inline" />
                 Đang khởi động...
               </>
             ) : (

@@ -1,10 +1,21 @@
 /* Spinner Component Styles */
 @import '../../styles/variables.css';
 
+/* Keyframes for spin animation */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 .spinnerContainer {
   display: flex;
   justify-content: center;
   align-items: center;
+  min-height: var(--space-4xl); /* Ensure minimum height for better centering */
 }
 
 .spinner {
@@ -12,6 +23,15 @@
   border-top: 4px solid var(--color-primary);
   border-radius: var(--radius-full);
   animation: spin 1s linear infinite;
+  /* Ensure the spinner itself is perfectly centered */
+  display: block;
+}
+
+/* Inline spinner for use within buttons and text */
+.spinnerInline {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: var(--space-sm);
 }
 
 /* Spinner sizes */
@@ -33,11 +53,13 @@
   border-width: 4px;
 }
 
-/* Special spinner for waiting modal */
+/* Special spinner for waiting modal - improved */
 .waitingSpinner {
   margin-bottom: var(--space-xl);
   display: flex;
   justify-content: center;
+  align-items: center;
+  min-height: var(--space-4xl);
 }
 
 .waitingSpinner .spinner {
@@ -47,21 +69,43 @@
   border-top: 4px solid var(--color-primary);
   border-radius: var(--radius-full);
   animation: spin 1s linear infinite;
+  display: block;
 }
 
-/* Loading container with spinner */
+/* Loading container with spinner - improved centering */
 .loadingContainer {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100vh;
+  min-height: 200px; /* Minimum height to prevent content jumping */
+  width: 100%;
+  text-align: center;
   color: var(--color-text-primary);
 }
 
 .loadingContainer p {
   margin-top: var(--space-xl);
   font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Full height loading container for page-level loading */
+.loadingContainerFullHeight {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100%;
+  text-align: center;
+  color: var(--color-text-primary);
+}
+
+.loadingContainerFullHeight p {
+  margin-top: var(--space-xl);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
 }
 
 /* Mobile responsive */

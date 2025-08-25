@@ -19,7 +19,7 @@ const WaitingModal = ({ isOpen, isStreamer }) => {
       overlayClassName={styles.waitingOverlay}
     >
       <div className={styles.waitingContent}>
-        <Spinner size="large" />
+        <Spinner size="large" containerType="waiting" />
 
         <h3>Đang chờ xác nhận</h3>
         <p>Streamer đang xem xét yêu cầu tham gia của bạn...</p>

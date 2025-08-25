@@ -1,6 +1,6 @@
 import React, { useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import styles from './StreamRoom.module.css';
+import styles from "./StreamRoom.module.css";
 
 // Hooks
 import useSocket from "../../hooks/useSocket";
@@ -91,14 +91,17 @@ const StreamRoom = ({ username }) => {
       console.log("🔵 CLIENT: Stream started successfully");
     } catch (error) {
       console.error("🔴 CLIENT: Failed to start stream:", error);
-      
+
       setIsStreaming(false);
       setStreamError(error);
-      setRetryCount(prev => prev + 1);
-      
+      setRetryCount((prev) => prev + 1);
+
       // Show user-friendly error notification
-      const errorMessage = error.message || "Lỗi không xác định khi bắt đầu stream";
-      console.log(`🔴 CLIENT: Stream error (attempt ${retryCount + 1}): ${errorMessage}`);
+      const errorMessage =
+        error.message || "Lỗi không xác định khi bắt đầu stream";
+      console.log(
+        `🔴 CLIENT: Stream error (attempt ${retryCount + 1}): ${errorMessage}`
+      );
     } finally {
       setIsLoadingStream(false);
     }
@@ -126,7 +129,7 @@ const StreamRoom = ({ username }) => {
       setRetryCount(0);
     }
   };
-  
+
   const handleDismissError = () => {
     setStreamError(null);
     setRetryCount(0);
@@ -141,20 +144,23 @@ const StreamRoom = ({ username }) => {
     setShowShareModal(true);
   };
 
-  // Cleanup on unmount
+  // Cleanup on unmount only (not on webRTC object changes)
   React.useEffect(() => {
     return () => {
+      console.log("🔵 CLIENT: StreamRoom unmounting, cleaning up stream");
       webRTC.stopStream();
     };
-  }, [webRTC]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - only run on mount/unmount
 
   if (!isConnected) {
     return (
       <div className={styles.streamContainer}>
-        <div className={styles.loadingContainer}>
-          <Spinner size="large" />
-          <p>Đang kết nối...</p>
-        </div>
+        <Spinner 
+          size="large" 
+          containerType="fullHeight"
+          text="Đang kết nối..."
+        />
       </div>
     );
   }

@@ -51,7 +51,7 @@ const StreamErrorDisplay = ({
           >
             {isRetrying ? (
               <>
-                <Spinner size="small" />
+                <Spinner size="small" containerType="inline" />
                 Đang thử lại...
               </>
             ) : (
