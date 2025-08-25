@@ -1,19 +1,20 @@
 import React from "react";
 import Button from "../UI/Button";
 import Modal from "../UI/Modal";
+import styles from './AcceptUsersModal.module.css';
 
 const PendingUserItem = ({ user, onAccept, onReject }) => (
-  <div className="pending-user-item">
-    <div className="user-info">
-      <span className="user-avatar">👤</span>
-      <span className="user-name">{user.username}</span>
+  <div className={styles.pendingUserItem}>
+    <div className={styles.userInfo}>
+      <span className={styles.userAvatar}>👤</span>
+      <span className={styles.userName}>{user.username}</span>
     </div>
-    <div className="user-actions">
+    <div className={styles.userActions}>
       <Button
         variant="success"
         size="small"
         onClick={() => onAccept(user.userId)}
-        className="accept-btn"
+        className={styles.acceptBtn}
       >
         Chấp nhận
       </Button>
@@ -21,7 +22,7 @@ const PendingUserItem = ({ user, onAccept, onReject }) => (
         variant="danger"
         size="small"
         onClick={() => onReject(user.userId)}
-        className="reject-btn"
+        className={styles.rejectBtn}
       >
         Từ chối
       </Button>
@@ -43,9 +44,9 @@ const AcceptUsersModal = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Yêu cầu tham gia phòng"
-      className="accept-modal"
+      className={styles.acceptModal}
     >
-      <div className="pending-users-list">
+      <div className={styles.pendingUsersList}>
         {pendingUsers.map((user) => (
           <PendingUserItem
             key={user.userId}
@@ -57,18 +58,18 @@ const AcceptUsersModal = ({
       </div>
 
       {pendingUsers.length > 1 && (
-        <div className="bulk-actions">
+        <div className={styles.bulkActions}>
           <Button
             variant="success"
             onClick={onAcceptAll}
-            className="bulk-accept-btn"
+            className={styles.bulkAcceptBtn}
           >
             Chấp nhận tất cả ({pendingUsers.length})
           </Button>
           <Button
             variant="danger"
             onClick={onRejectAll}
-            className="bulk-reject-btn"
+            className={styles.bulkRejectBtn}
           >
             Từ chối tất cả ({pendingUsers.length})
           </Button>

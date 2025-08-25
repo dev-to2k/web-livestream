@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { isValidUsername } from "../../utils/roomUtils";
 import Button from "../UI/Button";
 import Input from "../UI/Input";
+import styles from '../Home/Home.module.css';
 
 const QuickJoin = ({ setUsername }) => {
   const { roomId } = useParams();
@@ -38,10 +39,10 @@ const QuickJoin = ({ setUsername }) => {
   };
 
   return (
-    <div className="home-container">
-      <div className="home-card">
-        <h1 className="home-title">Tham gia phòng</h1>
-        <p className="room-info">
+    <div className={styles.homeContainer}>
+      <div className={styles.homeCard}>
+        <h1 className={styles.homeTitle}>Tham gia phòng</h1>
+        <p className={styles.roomInfo}>
           Phòng: <strong>{roomId}</strong>
         </p>
 
@@ -57,7 +58,7 @@ const QuickJoin = ({ setUsername }) => {
           error={error}
         />
 
-        <div className="button-group">
+        <div className={styles.buttonGroup}>
           <Button
             variant="primary"
             onClick={handleQuickJoin}

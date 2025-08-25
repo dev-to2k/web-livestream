@@ -7,6 +7,7 @@ import {
 } from "../../utils/roomUtils";
 import Button from "../UI/Button";
 import Input from "../UI/Input";
+import styles from './Home.module.css';
 
 const Home = ({ username, setUsername }) => {
   const [roomId, setRoomId] = useState("");
@@ -42,9 +43,9 @@ const Home = ({ username, setUsername }) => {
   };
 
   return (
-    <div className="home-container">
-      <div className="home-card">
-        <h1 className="home-title">Live Stream</h1>
+    <div className={styles.homeContainer}>
+      <div className={styles.homeCard}>
+        <h1 className={styles.homeTitle}>Live Stream</h1>
 
         <Input
           id="username"
@@ -66,7 +67,7 @@ const Home = ({ username, setUsername }) => {
           error={errors.roomId}
         />
 
-        <div className="button-group">
+        <div className={styles.buttonGroup}>
           <Button
             variant="primary"
             onClick={handleStartStream}

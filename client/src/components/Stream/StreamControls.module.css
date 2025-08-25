@@ -1,0 +1,84 @@
+/* StreamControls Component Styles */
+@import '../../styles/variables.css';
+
+.streamControls {
+  display: flex;
+  gap: var(--space-lg);
+  margin-top: 15px;
+  justify-content: center;
+}
+
+.controlBtn {
+  padding: var(--space-lg) var(--space-xl);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-light);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  font-size: var(--font-size-base);
+  transition: var(--transition-base);
+}
+
+.controlBtn:hover {
+  background: #555;
+}
+
+.controlBtn.active {
+  background: var(--color-primary);
+}
+
+.streamerPrivileges {
+  position: absolute;
+  top: 50px;
+  right: var(--space-xl);
+  background: var(--gradient-crown);
+  color: var(--color-surface-light);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-2xl);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  box-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+  animation: privilege-pulse 3s ease-in-out infinite;
+}
+
+@keyframes privilege-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+
+.autoAcceptControl {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  gap: var(--space-sm);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .streamControls {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .autoAcceptControl {
+    flex-direction: column;
+    margin-left: 0;
+    margin-top: var(--space-lg);
+    text-align: center;
+  }
+  
+  .streamerPrivileges {
+    position: relative;
+    top: auto;
+    right: auto;
+    margin: var(--space-lg) 0;
+    text-align: center;
+  }
+}

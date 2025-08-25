@@ -1,4 +1,5 @@
 import React from "react";
+import styles from './Modal.module.css';
 
 const Modal = ({
   isOpen,
@@ -17,27 +18,37 @@ const Modal = ({
     }
   };
 
+  const overlayClasses = [
+    styles.modalOverlay,
+    overlayClassName
+  ].filter(Boolean).join(' ');
+
+  const contentClasses = [
+    styles.modalContent,
+    className
+  ].filter(Boolean).join(' ');
+
   return (
     <div
-      className={`modal-overlay ${overlayClassName}`}
+      className={overlayClasses}
       onClick={handleOverlayClick}
     >
       <div
-        className={`modal-content ${className}`}
+        className={contentClasses}
         onClick={(e) => e.stopPropagation()}
       >
         {(title || showCloseButton) && (
-          <div className="modal-header">
+          <div className={styles.modalHeader}>
             {title && <h3>{title}</h3>}
             {showCloseButton && (
-              <button className="modal-close" onClick={onClose}>
+              <button className={styles.modalClose} onClick={onClose}>
                 ×
               </button>
             )}
           </div>
         )}
 
-        <div className="modal-body">{children}</div>
+        <div className={styles.modalBody}>{children}</div>
       </div>
     </div>
   );

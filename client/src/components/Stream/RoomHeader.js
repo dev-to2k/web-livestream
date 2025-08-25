@@ -1,23 +1,24 @@
 import React from "react";
 import Button from "../UI/Button";
+import styles from './RoomHeader.module.css';
 
 const RoomHeader = ({ roomId, isStreamer, onShare, onLeave }) => {
   console.log("🔵 RoomHeader render:", { roomId, isStreamer });
 
   return (
-    <div className="room-header">
-      <h2 className="room-title">
-        {isStreamer && <span className="crown-icon">👑</span>}
+    <div className={styles.roomHeader}>
+      <h2 className={styles.roomTitle}>
+        {isStreamer && <span className={styles.crownIcon}>👑</span>}
         Phòng: {roomId}
       </h2>
 
-      <div className="room-actions">
+      <div className={styles.roomActions}>
         {isStreamer && (
           <Button
             variant="success"
             size="small"
             onClick={onShare}
-            className="share-btn"
+            className={styles.shareBtn}
           >
             Chia sẻ
           </Button>
@@ -27,7 +28,7 @@ const RoomHeader = ({ roomId, isStreamer, onShare, onLeave }) => {
           variant="danger"
           size="small"
           onClick={onLeave}
-          className="leave-btn"
+          className={styles.leaveBtn}
         >
           Rời phòng
         </Button>

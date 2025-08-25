@@ -1,0 +1,47 @@
+/* ChatMessage Component Styles */
+@import '../../styles/variables.css';
+
+.chatMessage {
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-md);
+}
+
+.messageUsername {
+  display: inline-flex;
+  align-items: center;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-accent);
+  margin-right: var(--space-sm);
+}
+
+.messageUsername.system {
+  color: var(--color-text-muted);
+}
+
+.messageText {
+  color: var(--color-text-secondary);
+}
+
+.messageTime {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
+}
+
+/* Crown icon for streamer */
+.crownIconSmall {
+  color: var(--color-crown);
+  margin-right: var(--space-xs);
+  font-size: var(--font-size-base);
+  text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .crownIconSmall {
+    font-size: var(--font-size-sm);
+    margin-right: 3px;
+  }
+}

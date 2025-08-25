@@ -1,4 +1,5 @@
 import React from "react";
+import styles from './Button.module.css';
 
 const Button = ({
   children,
@@ -10,18 +11,18 @@ const Button = ({
   type = "button",
   ...props
 }) => {
-  const baseClass = "btn";
-  const variantClass = `btn-${variant}`;
-  const sizeClass = `btn-${size}`;
-  const disabledClass = disabled ? "btn-disabled" : "";
-
-  const buttonClass =
-    `${baseClass} ${variantClass} ${sizeClass} ${disabledClass} ${className}`.trim();
+  const buttonClasses = [
+    styles.button,
+    styles[variant],
+    styles[size],
+    disabled && styles.disabled,
+    className
+  ].filter(Boolean).join(' ');
 
   return (
     <button
       type={type}
-      className={buttonClass}
+      className={buttonClasses}
       onClick={onClick}
       disabled={disabled}
       {...props}

@@ -1,0 +1,71 @@
+/* Home Component Styles */
+@import '../../styles/variables.css';
+
+.homeContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-xl);
+}
+
+.homeCard {
+  background: rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: var(--backdrop-blur-md);
+  backdrop-filter: var(--backdrop-blur-md);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-4xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  max-width: 500px;
+  width: 100%;
+}
+
+.homeTitle {
+  font-size: var(--font-size-2xl);
+  margin-bottom: var(--space-3xl);
+  text-align: center;
+  background: linear-gradient(45deg, #fff, #f0f0f0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 15px;
+  margin-top: var(--space-3xl);
+}
+
+/* Room info styles for QuickJoin */
+.roomInfo {
+  text-align: center;
+  margin-bottom: var(--space-xl);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-md);
+}
+
+.roomInfo strong {
+  color: var(--color-primary);
+  font-size: var(--font-size-lg);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .homeContainer {
+    padding: var(--space-lg);
+  }
+  
+  .homeCard {
+    padding: var(--space-3xl);
+  }
+  
+  .buttonGroup {
+    flex-direction: column;
+  }
+  
+  .homeTitle {
+    font-size: var(--font-size-xl);
+  }
+}

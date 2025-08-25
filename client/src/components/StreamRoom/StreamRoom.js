@@ -1,5 +1,6 @@
 import React, { useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import styles from './StreamRoom.module.css';
 
 // Hooks
 import useSocket from "../../hooks/useSocket";
@@ -14,6 +15,7 @@ import WaitingModal from "../Modals/WaitingModal";
 import RoomHeader from "../Stream/RoomHeader";
 import StreamControls from "../Stream/StreamControls";
 import VideoPlayer from "../Stream/VideoPlayer";
+import Spinner from "../UI/Spinner";
 
 // Utils
 import { SERVER_URL } from "../../utils/constants";
@@ -35,6 +37,7 @@ const StreamRoom = ({ username }) => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [streamError, setStreamError] = useState(null);
   const [isLoadingStream, setIsLoadingStream] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Custom hooks
   const { socket, isConnected } = useSocket(SERVER_URL);
@@ -84,27 +87,18 @@ const StreamRoom = ({ username }) => {
 
       await webRTC.startStream(localVideoRef);
       setIsStreaming(true);
+      setRetryCount(0); // Reset retry count on success
       console.log("🔵 CLIENT: Stream started successfully");
-
-      // Notify user of success
-      console.log("🔵 CLIENT: Stream is now live!");
     } catch (error) {
       console.error("🔴 CLIENT: Failed to start stream:", error);
       
-      // Handle both enhanced error objects and regular errors
-      const errorMessage = error.message || "Lỗi không xác định khi bắt đầu stream";
-      const userAction = error.userAction || "Thử lại hoặc làm mới trang";
-      
-      setStreamError({
-        message: errorMessage,
-        userAction: userAction,
-        recoverable: error.recoverable !== false,
-        timestamp: error.timestamp || new Date().toISOString()
-      });
       setIsStreaming(false);
-
-      // Show user-friendly error message with action guidance
-      alert(`${errorMessage}\n\nHướng dẫn: ${userAction}`);
+      setStreamError(error);
+      setRetryCount(prev => prev + 1);
+      
+      // Show user-friendly error notification
+      const errorMessage = error.message || "Lỗi không xác định khi bắt đầu stream";
+      console.log(`🔴 CLIENT: Stream error (attempt ${retryCount + 1}): ${errorMessage}`);
     } finally {
       setIsLoadingStream(false);
     }
@@ -112,18 +106,30 @@ const StreamRoom = ({ username }) => {
 
   const handleStopStream = () => {
     try {
+      console.log("🔵 CLIENT: Stopping stream...");
       webRTC.stopStream();
       setIsStreaming(false);
       setStreamError(null);
+      setRetryCount(0);
 
+      // Clean up video element
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = null;
       }
 
-      console.log("🔵 CLIENT: Stream stopped");
+      console.log("🔵 CLIENT: Stream stopped successfully");
     } catch (error) {
       console.error("🔴 CLIENT: Error stopping stream:", error);
+      // Even if there's an error stopping, reset the UI state
+      setIsStreaming(false);
+      setStreamError(null);
+      setRetryCount(0);
     }
+  };
+  
+  const handleDismissError = () => {
+    setStreamError(null);
+    setRetryCount(0);
   };
 
   // Navigation handlers
@@ -144,9 +150,9 @@ const StreamRoom = ({ username }) => {
 
   if (!isConnected) {
     return (
-      <div className="stream-container">
-        <div className="loading-container">
-          <div className="spinner"></div>
+      <div className={styles.streamContainer}>
+        <div className={styles.loadingContainer}>
+          <Spinner size="large" />
           <p>Đang kết nối...</p>
         </div>
       </div>
@@ -154,8 +160,8 @@ const StreamRoom = ({ username }) => {
   }
 
   return (
-    <div className="stream-container">
-      <div className="video-section">
+    <div className={styles.streamContainer}>
+      <div className={styles.videoSection}>
         <RoomHeader
           roomId={roomId}
           isStreamer={isStreamer}
@@ -178,6 +184,8 @@ const StreamRoom = ({ username }) => {
           isStreamer={isStreamer}
           isLoadingStream={isLoadingStream}
           streamError={streamError}
+          retryCount={retryCount}
+          onDismissError={handleDismissError}
         />
 
         {/* Debug: Show isStreamer status */}

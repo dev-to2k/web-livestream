@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import ChatInput from "./ChatInput";
 import ChatMessage from "./ChatMessage";
+import styles from './ChatSection.module.css';
 
 const ChatSection = ({
   messages,
@@ -19,13 +20,13 @@ const ChatSection = ({
   }, [messages]);
 
   return (
-    <div className="chat-section">
-      <div className="chat-header">
+    <div className={styles.chatSection}>
+      <div className={styles.chatHeader}>
         <h3>Chat</h3>
-        <div className="viewer-count">{viewerCount + 1} người xem</div>
+        <div className={styles.viewerCount}>{viewerCount + 1} người xem</div>
       </div>
     
-      <div className="chat-messages">
+      <div className={styles.chatMessages}>
         {messages.map((msg) => (
           <ChatMessage key={msg.id} message={msg} />
         ))}

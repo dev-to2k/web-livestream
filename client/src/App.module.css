@@ -1,0 +1,7 @@
+/* App Component Styles */
+@import './styles/variables.css';
+
+.App {
+  min-height: 100vh;
+  background: var(--gradient-app);
+}

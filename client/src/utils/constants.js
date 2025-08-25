@@ -24,12 +24,17 @@ export const MEDIA_CONSTRAINTS = {
     height: { ideal: 480, min: 240, max: 720 },
     frameRate: { ideal: 15, min: 10, max: 30 },
     facingMode: "user",
+    // Add compatibility settings
+    aspectRatio: { ideal: 4/3, min: 1.33, max: 1.78 }
   },
   audio: {
     echoCancellation: true,
     noiseSuppression: true,
     autoGainControl: true,
-    sampleRate: 44100,
+    // More conservative sample rate for compatibility
+    sampleRate: { ideal: 44100, max: 48000 },
+    // Add channel configuration
+    channelCount: { ideal: 1, max: 2 }
   },
 };
 

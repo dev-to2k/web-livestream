@@ -1,0 +1,96 @@
+/* RoomHeader Component Styles */
+@import '../../styles/variables.css';
+
+.roomHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px var(--space-xl);
+  background: var(--color-surface-light);
+  border-bottom: 1px solid var(--color-surface-lighter);
+}
+
+.roomTitle {
+  display: flex;
+  align-items: center;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.roomActions {
+  display: flex;
+  gap: var(--space-lg);
+}
+
+.shareBtn {
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--color-success);
+  color: var(--color-text-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-decoration: none;
+  font-size: var(--font-size-base);
+  position: relative;
+}
+
+.shareBtn:hover {
+  background: var(--color-success-dark);
+}
+
+.shareBtn::before {
+  content: "👑";
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: var(--font-size-sm);
+  background: rgba(255, 215, 0, 0.2);
+  border-radius: var(--radius-full);
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 215, 0, 0.5);
+}
+
+.leaveBtn {
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--color-danger);
+  color: var(--color-text-primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-decoration: none;
+  font-size: var(--font-size-base);
+}
+
+.leaveBtn:hover {
+  background: var(--color-danger-dark);
+}
+
+/* Crown icon styles */
+.crownIcon {
+  color: var(--color-crown);
+  margin-right: var(--space-sm);
+  font-size: var(--space-xl);
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+  animation: crown-glow 2s ease-in-out infinite alternate;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .roomActions {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  
+  .shareBtn::before {
+    display: none; /* Hide crown decoration on mobile */
+  }
+  
+  .crownIcon {
+    font-size: var(--font-size-lg);
+    margin-right: var(--space-sm);
+  }
+}

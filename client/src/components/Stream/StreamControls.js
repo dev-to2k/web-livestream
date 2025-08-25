@@ -1,5 +1,8 @@
 import Button from "../UI/Button";
 import Toggle from "../UI/Toggle";
+import Spinner from "../UI/Spinner";
+import StreamErrorDisplay from "../StreamErrorDisplay";
+import styles from './StreamControls.module.css';
 
 const StreamControls = ({
   isStreaming,
@@ -10,8 +13,10 @@ const StreamControls = ({
   isStreamer,
   isLoadingStream = false,
   streamError = null,
+  retryCount = 0,
+  onDismissError = null,
 }) => {
-  console.log("🔵 StreamControls render:", { isStreamer, isStreaming });
+  console.log("🔵 StreamControls render:", { isStreamer, isStreaming, streamError });
 
   if (!isStreamer) {
     console.log("🔴 StreamControls: Not streamer, returning null");
@@ -20,23 +25,30 @@ const StreamControls = ({
 
   return (
     <>
-      <div className="streamer-privileges">👑 Chủ phòng - Quyền quản lý</div>
+      <div className={styles.streamerPrivileges}>👑 Chủ phòng - Quyền quản lý</div>
 
-      <div className="stream-controls">
+      <div className={styles.streamControls}>
         {!isStreaming ? (
           <Button
             variant="control"
             onClick={onStartStream}
-            className="control-btn"
+            className={styles.controlBtn}
             disabled={isLoadingStream}
           >
-            {isLoadingStream ? "Đang khởi động..." : "Bắt đầu Stream"}
+            {isLoadingStream ? (
+              <>
+                <Spinner size="small" />
+                Đang khởi động...
+              </>
+            ) : (
+              "Bắt đầu Stream"
+            )}
           </Button>
         ) : (
           <Button
             variant="control"
             onClick={onStopStream}
-            className="control-btn active"
+            className={`${styles.controlBtn} ${styles.active}`}
             disabled={isLoadingStream}
           >
             Dừng Stream
@@ -47,43 +59,20 @@ const StreamControls = ({
           checked={autoAccept}
           onChange={onToggleAutoAccept}
           label={autoAccept ? "Tự động chấp nhận" : "Xác nhận thủ công"}
-          className="auto-accept-control"
+          className={styles.autoAcceptControl}
           disabled={isLoadingStream}
         />
       </div>
 
-      {/* Error message */}
-      {streamError && (
-        <div className="stream-error">
-          <div className="error-message">
-            ❌ {typeof streamError === 'object' ? streamError.message : streamError}
-          </div>
-          {typeof streamError === 'object' && streamError.userAction && (
-            <div className="error-action">
-              <strong>Hướng dẫn:</strong> {streamError.userAction}
-            </div>
-          )}
-          {typeof streamError === 'object' && streamError.recoverable && (
-            <button 
-              className="retry-btn" 
-              onClick={onStartStream}
-              disabled={isLoadingStream}
-              style={{
-                marginTop: '10px',
-                padding: '5px 15px',
-                background: '#ff6b6b',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '12px'
-              }}
-            >
-              Thử lại
-            </button>
-          )}
-        </div>
-      )}
+      {/* Enhanced error display */}
+      <StreamErrorDisplay
+        error={streamError}
+        onRetry={onStartStream}
+        onDismiss={onDismissError}
+        isRetrying={isLoadingStream}
+        retryCount={retryCount}
+        maxRetries={3}
+      />
     </>
   );
 };

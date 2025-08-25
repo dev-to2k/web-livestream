@@ -1,0 +1,69 @@
+/* VideoPlayer Component Styles */
+@import '../../styles/variables.css';
+
+.videoContainer {
+  flex: 1;
+  background: var(--color-surface-dark);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+.videoElement {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  background: var(--color-surface-dark);
+}
+
+.videoVisible {
+  opacity: 1;
+  visibility: visible;
+  z-index: 1;
+}
+
+.videoHidden {
+  opacity: 0;
+  visibility: hidden;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Debug styles for development */
+.videoElementDebug {
+  border: 2px solid var(--color-primary);
+  box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+}
+
+.videoPlaceholder {
+  color: #666;
+  font-size: var(--font-size-lg);
+  text-align: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  width: 100%;
+  padding: var(--space-xl);
+}
+
+.videoDebugInfo {
+  position: absolute;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  background: rgba(0, 0, 0, 0.8);
+  color: var(--color-text-primary);
+  padding: 5px;
+  font-size: var(--font-size-xs);
+  border-radius: var(--radius-xs);
+  z-index: 3;
+}

@@ -2,6 +2,7 @@ import React from "react";
 import { copyToClipboard } from "../../utils/clipboard";
 import Button from "../UI/Button";
 import Modal from "../UI/Modal";
+import styles from './ShareModal.module.css';
 
 const ShareModal = ({ isOpen, onClose, roomId }) => {
   const roomLink = `${window.location.origin}/room/${roomId}`;
@@ -47,14 +48,14 @@ const ShareModal = ({ isOpen, onClose, roomId }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Chia sẻ phòng stream">
-      <div className="share-section">
+      <div className={styles.shareSection}>
         <label>Link phòng:</label>
-        <div className="share-input-group">
+        <div className={styles.shareInputGroup}>
           <input
             type="text"
             value={roomLink}
             readOnly
-            className="share-input"
+            className={styles.shareInput}
           />
           <Button variant="primary" size="small" onClick={handleCopyLink}>
             Copy
@@ -62,37 +63,37 @@ const ShareModal = ({ isOpen, onClose, roomId }) => {
         </div>
       </div>
 
-      <div className="share-section">
+      <div className={styles.shareSection}>
         <label>Mã phòng:</label>
-        <div className="share-input-group">
-          <input type="text" value={roomId} readOnly className="share-input" />
+        <div className={styles.shareInputGroup}>
+          <input type="text" value={roomId} readOnly className={styles.shareInput} />
           <Button variant="primary" size="small" onClick={handleCopyCode}>
             Copy
           </Button>
         </div>
       </div>
 
-      <div className="share-section">
+      <div className={styles.shareSection}>
         <label>Chia sẻ qua:</label>
-        <div className="social-share">
+        <div className={styles.socialShare}>
           <Button
             variant="whatsapp"
             onClick={shareViaWhatsApp}
-            className="social-btn"
+            className={styles.socialBtn}
           >
             <span>📱</span> WhatsApp
           </Button>
           <Button
             variant="facebook"
             onClick={shareViaFacebook}
-            className="social-btn"
+            className={styles.socialBtn}
           >
             <span>📘</span> Facebook
           </Button>
           <Button
             variant="telegram"
             onClick={shareViaTelegram}
-            className="social-btn"
+            className={styles.socialBtn}
           >
             <span>✈️</span> Telegram
           </Button>

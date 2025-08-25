@@ -1,0 +1,83 @@
+/* ErrorBoundary Component Styles */
+@import '../styles/variables.css';
+
+.errorBoundary {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gradient-app);
+  padding: var(--space-xl);
+}
+
+.errorBoundaryContent {
+  background: rgba(255, 255, 255, 0.1);
+  -webkit-backdrop-filter: var(--backdrop-blur-md);
+  backdrop-filter: var(--backdrop-blur-md);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-4xl);
+  text-align: center;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--color-text-primary);
+}
+
+.errorIcon {
+  font-size: 48px;
+  margin-bottom: var(--space-xl);
+  display: block;
+}
+
+.errorBoundaryContent h2 {
+  margin-bottom: 15px;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-2xl);
+}
+
+.errorMessage {
+  margin-bottom: 25px;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: var(--line-height-relaxed);
+}
+
+.errorActions {
+  margin-bottom: var(--space-xl);
+}
+
+.errorActions button {
+  margin: 0 var(--space-md);
+}
+
+.errorDetails {
+  text-align: left;
+  margin-top: var(--space-xl);
+  padding: var(--space-lg);
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+}
+
+.errorDetails summary {
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  margin-bottom: var(--space-lg);
+  font-weight: var(--font-weight-medium);
+}
+
+.errorStack h4 {
+  color: var(--color-primary);
+  margin: var(--space-lg) 0 var(--space-sm) 0;
+  font-size: var(--font-size-base);
+}
+
+.errorStack pre {
+  background: rgba(0, 0, 0, 0.5);
+  padding: var(--space-lg);
+  border-radius: var(--radius-xs);
+  overflow-x: auto;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-base);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

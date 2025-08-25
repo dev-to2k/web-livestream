@@ -1,0 +1,40 @@
+/* StreamRoom Component Styles */
+@import '../../styles/variables.css';
+
+.streamContainer {
+  display: flex;
+  height: 100vh;
+  background: var(--color-background);
+}
+
+.videoSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-xl);
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  color: var(--color-text-primary);
+}
+
+.loadingContainer p {
+  margin-top: var(--space-xl);
+  font-size: var(--font-size-md);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .streamContainer {
+    flex-direction: column;
+  }
+  
+  .videoSection {
+    padding: var(--space-lg);
+  }
+}

@@ -1,4 +1,5 @@
 import React from "react";
+import styles from './Toggle.module.css';
 
 const Toggle = ({
   checked,
@@ -7,18 +8,22 @@ const Toggle = ({
   disabled = false,
   className = "",
 }) => {
+  const toggleClasses = [
+    styles.toggleControl,
+    className
+  ].filter(Boolean).join(' ');
   return (
-    <div className={`toggle-control ${className}`}>
-      <label className="toggle-switch">
+    <div className={toggleClasses}>
+      <label className={styles.toggleSwitch}>
         <input
           type="checkbox"
           checked={checked}
           onChange={onChange}
           disabled={disabled}
         />
-        <span className="slider"></span>
+        <span className={styles.slider}></span>
       </label>
-      {label && <span className="toggle-label">{label}</span>}
+      {label && <span className={styles.toggleLabel}>{label}</span>}
     </div>
   );
 };

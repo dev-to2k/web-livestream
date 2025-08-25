@@ -105,9 +105,19 @@ export const createRetryStrategy = (maxRetries = 3) => {
       retryCount++;
       
       if (retryCount === 1) {
-        return { constraints: getFallbackConstraints(), delay: 1000 };
+        return { 
+          constraints: getFallbackConstraints(), 
+          delay: 1000,
+          quality: 'low',
+          description: 'Retrying with lower quality settings'
+        };
       } else if (retryCount === 2) {
-        return { constraints: getBasicConstraints(), delay: 2000 };
+        return { 
+          constraints: getBasicConstraints(), 
+          delay: 2000,
+          quality: 'basic',
+          description: 'Final attempt with basic constraints'
+        };
       }
       
       return null;
@@ -115,6 +125,111 @@ export const createRetryStrategy = (maxRetries = 3) => {
     
     reset: () => {
       retryCount = 0;
-    }
+    },
+    
+    getCurrentAttempt: () => retryCount,
+    getMaxRetries: () => maxRetries
   };
+};
+
+// Quality assessment for different constraint levels
+export const QualityLevels = {
+  HIGH: 'high',
+  STANDARD: 'standard', 
+  LOW: 'low',
+  BASIC: 'basic'
+};
+
+// Enhanced constraints for different quality levels
+export const getConstraintsByQuality = (quality) => {
+  switch (quality) {
+    case QualityLevels.HIGH:
+      return {
+        video: {
+          width: { ideal: 1280, min: 640, max: 1920 },
+          height: { ideal: 720, min: 480, max: 1080 },
+          frameRate: { ideal: 30, min: 15, max: 60 },
+          facingMode: "user",
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 48000,
+        },
+      };
+    
+    case QualityLevels.STANDARD:
+      return {
+        video: {
+          width: { ideal: 640, min: 320, max: 1280 },
+          height: { ideal: 480, min: 240, max: 720 },
+          frameRate: { ideal: 15, min: 10, max: 30 },
+          facingMode: "user",
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 44100,
+        },
+      };
+      
+    case QualityLevels.LOW:
+      return getFallbackConstraints();
+      
+    case QualityLevels.BASIC:
+    default:
+      return getBasicConstraints();
+  }
+};
+
+// Enhanced error reporting with user guidance
+export const createUserFriendlyError = (error, context = {}) => {
+  const errorInfo = handleStreamError(error);
+  
+  return {
+    ...errorInfo,
+    context,
+    guidance: getErrorGuidance(errorInfo.type),
+    canRetry: errorInfo.recoverable,
+    nextSteps: getNextSteps(errorInfo.type)
+  };
+};
+
+const getErrorGuidance = (errorType) => {
+  const guidance = {
+    [StreamErrorTypes.PERMISSION_DENIED]: [
+      "1. Nhấp vào biểu tượng camera trong thanh địa chỉ",
+      "2. Chọn 'Cho phép' để cấp quyền truy cập", 
+      "3. Làm mới trang và thử lại"
+    ],
+    [StreamErrorTypes.DEVICE_NOT_FOUND]: [
+      "1. Kiểm tra camera/microphone đã được kết nối",
+      "2. Thử rút và cắm lại thiết bị",
+      "3. Kiểm tra thiết bị có hoạt động với ứng dụng khác không"
+    ],
+    [StreamErrorTypes.DEVICE_BUSY]: [
+      "1. Đóng các ứng dụng khác có thể đang sử dụng camera",
+      "2. Kiểm tra các tab trình duyệt khác",
+      "3. Khởi động lại trình duyệt nếu cần"
+    ]
+  };
+  
+  return guidance[errorType] || [
+    "1. Thử làm mới trang",
+    "2. Kiểm tra kết nối internet", 
+    "3. Liên hệ hỗ trợ nếu vấn đề vẫn tiếp tục"
+  ];
+};
+
+const getNextSteps = (errorType) => {
+  const nextSteps = {
+    [StreamErrorTypes.PERMISSION_DENIED]: 'allow_permission',
+    [StreamErrorTypes.DEVICE_NOT_FOUND]: 'check_devices',
+    [StreamErrorTypes.DEVICE_BUSY]: 'close_other_apps',
+    [StreamErrorTypes.OVERCONSTRAINED]: 'retry_with_fallback'
+  };
+  
+  return nextSteps[errorType] || 'retry';
 };

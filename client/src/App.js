@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
-import "./App.css";
+import "./styles/globals.css";
+import styles from './App.module.css';
 import Home from "./components/Home/Home";
 import QuickJoin from "./components/QuickJoin/QuickJoin";
 import StreamRoom from "./components/StreamRoom/StreamRoom";
@@ -19,7 +20,7 @@ function App() {
 
   return (
     <Router>
-      <div className="App">
+      <div className={styles.App}>
         <Routes>
           <Route
             path="/"

@@ -1,0 +1,111 @@
+/* CSS Custom Properties - Design Tokens */
+:root {
+  /* Colors */
+  --color-primary: #ff6b6b;
+  --color-primary-dark: #ee5a24;
+  --color-secondary: #4834d4;
+  --color-secondary-light: #686de0;
+  --color-success: #28a745;
+  --color-success-dark: #218838;
+  --color-danger: #dc3545;
+  --color-danger-dark: #c82333;
+  --color-info: #007bff;
+  --color-info-dark: #0056b3;
+  
+  /* Background Colors */
+  --color-background: #1a1a1a;
+  --color-surface: #2a2a2a;
+  --color-surface-light: #333;
+  --color-surface-lighter: #444;
+  --color-surface-dark: #000;
+  
+  /* Text Colors */
+  --color-text-primary: #fff;
+  --color-text-secondary: #ddd;
+  --color-text-muted: #888;
+  --color-text-accent: #ff6b6b;
+  
+  /* Special Colors */
+  --color-crown: #ffd700;
+  --color-crown-light: #ffed4e;
+  --color-whatsapp: #25d366;
+  --color-whatsapp-dark: #1da851;
+  --color-facebook: #1877f2;
+  --color-facebook-dark: #166fe5;
+  --color-telegram: #0088cc;
+  --color-telegram-dark: #006699;
+  
+  /* Gradients */
+  --gradient-primary: linear-gradient(45deg, #ff6b6b, #ee5a24);
+  --gradient-secondary: linear-gradient(45deg, #4834d4, #686de0);
+  --gradient-app: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-surface: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+  --gradient-crown: linear-gradient(45deg, #ffd700, #ffed4e);
+  
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 30px;
+  --space-4xl: 40px;
+  
+  /* Typography */
+  --font-family-base: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  --font-family-mono: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  
+  --font-size-xs: 10px;
+  --font-size-sm: 12px;
+  --font-size-base: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 24px;
+  --font-size-2xl: 2.5rem;
+  
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  --line-height-tight: 1.2;
+  --line-height-base: 1.4;
+  --line-height-relaxed: 1.5;
+  
+  /* Border Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 20px;
+  --radius-full: 50%;
+  
+  /* Shadows */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 10px 30px rgba(0, 0, 0, 0.5);
+  
+  /* Backdrop filters */
+  --backdrop-blur-sm: blur(5px);
+  --backdrop-blur-md: blur(10px);
+  
+  /* Transitions */
+  --transition-fast: all 0.2s ease;
+  --transition-base: all 0.3s ease;
+  --transition-slow: all 0.5s ease;
+  
+  /* Z-index */
+  --z-index-dropdown: 100;
+  --z-index-modal: 1000;
+  --z-index-tooltip: 1010;
+  
+  /* Breakpoints */
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
+  --breakpoint-xl: 1200px;
+}
