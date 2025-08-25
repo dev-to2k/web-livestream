@@ -1,0 +1,550 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Live Streaming Platform - Alerts & Health",
+    "description": "Critical alerts and health monitoring for the live streaming platform",
+    "tags": ["livestream", "alerts", "health", "sla"],
+    "timezone": "browser",
+    "schemaVersion": 27,
+    "version": 1,
+    "refresh": "10s",
+    "time": {
+      "from": "now-30m",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "🚨 Critical Alerts",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+        "collapsed": false
+      },
+      {
+        "id": 2,
+        "title": "System Health Status",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 6, "x": 0, "y": 1},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 0.8},
+                {"color": "green", "value": 0.95}
+              ]
+            },
+            "unit": "percentunit",
+            "min": 0,
+            "max": 1
+          }
+        },
+        "targets": [
+          {
+            "expr": "(sum(up{job=~\"livestream.*\"}) / count(up{job=~\"livestream.*\"}))",
+            "legendFormat": "Health Score",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Connection Overload Alert",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 6, "x": 6, "y": 1},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 800},
+                {"color": "red", "value": 1000}
+              ]
+            },
+            "unit": "short"
+          }
+        },
+        "targets": [
+          {
+            "expr": "sum(livestream_connections_total)",
+            "legendFormat": "Total Connections",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "High Latency Alert",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 6, "x": 12, "y": 1},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 100},
+                {"color": "red", "value": 250}
+              ]
+            },
+            "unit": "ms"
+          }
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(livestream_message_latency_seconds_bucket[5m])) by (le)) * 1000",
+            "legendFormat": "P95 Latency",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Error Rate Alert",
+        "type": "stat",
+        "gridPos": {"h": 6, "w": 6, "x": 18, "y": 1},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 5},
+                {"color": "red", "value": 10}
+              ]
+            },
+            "unit": "percent"
+          }
+        },
+        "targets": [
+          {
+            "expr": "(sum(rate(livestream_errors_total[5m])) / sum(rate(livestream_messages_total[5m]))) * 100",
+            "legendFormat": "Error Rate",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "📊 SLA Metrics",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 7},
+        "collapsed": false
+      },
+      {
+        "id": 7,
+        "title": "Uptime (99.9% SLA)",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 99},
+                {"color": "green", "value": 99.9}
+              ]
+            },
+            "unit": "percent",
+            "decimals": 3
+          }
+        },
+        "targets": [
+          {
+            "expr": "avg_over_time((sum(up{job=~\"livestream.*\"}) / count(up{job=~\"livestream.*\"}))[24h:]) * 100",
+            "legendFormat": "24h Uptime",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Response Time SLA (<100ms)",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": null},
+                {"color": "yellow", "value": 95},
+                {"color": "green", "value": 98}
+              ]
+            },
+            "unit": "percent",
+            "decimals": 2
+          }
+        },
+        "targets": [
+          {
+            "expr": "(sum(rate(livestream_message_latency_seconds_bucket{le=\"0.1\"}[24h])) / sum(rate(livestream_message_latency_seconds_count[24h]))) * 100",
+            "legendFormat": "Sub-100ms %",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Throughput Capacity",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8},
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 80},
+                {"color": "red", "value": 95}
+              ]
+            },
+            "unit": "percent"
+          }
+        },
+        "targets": [
+          {
+            "expr": "(sum(livestream_connections_total) / 1000) * 100",
+            "legendFormat": "Capacity Usage",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "🔥 Resource Alerts",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 16},
+        "collapsed": false
+      },
+      {
+        "id": 11,
+        "title": "CPU Usage Alert",
+        "type": "graph",
+        "gridPos": {"h": 9, "w": 8, "x": 0, "y": 17},
+        "yAxes": [
+          {"label": "CPU %", "show": true, "min": 0, "max": 100},
+          {"show": false}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [85], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "10s",
+          "handler": 1,
+          "name": "High CPU Usage",
+          "noDataState": "no_data",
+          "notifications": []
+        },
+        "targets": [
+          {
+            "expr": "livestream_cpu_usage_percent",
+            "legendFormat": "CPU Usage",
+            "refId": "A"
+          }
+        ],
+        "thresholds": [
+          {"colorMode": "critical", "op": "gt", "value": 85, "fill": true, "line": true}
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Memory Usage Alert",
+        "type": "graph",
+        "gridPos": {"h": 9, "w": 8, "x": 8, "y": 17},
+        "yAxes": [
+          {"label": "Memory (MB)", "show": true},
+          {"show": false}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [1000], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "10s",
+          "handler": 1,
+          "name": "High Memory Usage",
+          "noDataState": "no_data",
+          "notifications": []
+        },
+        "targets": [
+          {
+            "expr": "livestream_memory_usage_bytes{type=\"rss\"} / 1024 / 1024",
+            "legendFormat": "RSS Memory",
+            "refId": "A"
+          }
+        ],
+        "thresholds": [
+          {"colorMode": "critical", "op": "gt", "value": 1000, "fill": true, "line": true}
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Event Loop Lag Alert",
+        "type": "graph",
+        "gridPos": {"h": 9, "w": 8, "x": 16, "y": 17},
+        "yAxes": [
+          {"label": "Lag (ms)", "show": true},
+          {"show": false}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [100], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "10s",
+          "handler": 1,
+          "name": "High Event Loop Lag",
+          "noDataState": "no_data",
+          "notifications": []
+        },
+        "targets": [
+          {
+            "expr": "livestream_event_loop_lag_seconds * 1000",
+            "legendFormat": "Event Loop Lag",
+            "refId": "A"
+          }
+        ],
+        "thresholds": [
+          {"colorMode": "critical", "op": "gt", "value": 100, "fill": true, "line": true}
+        ]
+      },
+      {
+        "id": 14,
+        "title": "📡 Network & Media Alerts",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 26},
+        "collapsed": false
+      },
+      {
+        "id": 15,
+        "title": "High Packet Loss Alert",
+        "type": "graph",
+        "gridPos": {"h": 9, "w": 12, "x": 0, "y": 27},
+        "yAxes": [
+          {"label": "Packet Loss %", "show": true, "min": 0, "max": 20},
+          {"show": false}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [5], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "10s",
+          "handler": 1,
+          "name": "High Packet Loss",
+          "noDataState": "no_data",
+          "notifications": []
+        },
+        "targets": [
+          {
+            "expr": "avg(livestream_media_packet_loss_rate) * 100",
+            "legendFormat": "Avg Packet Loss",
+            "refId": "A"
+          }
+        ],
+        "thresholds": [
+          {"colorMode": "critical", "op": "gt", "value": 5, "fill": true, "line": true}
+        ]
+      },
+      {
+        "id": 16,
+        "title": "Cache Performance Alert",
+        "type": "graph",
+        "gridPos": {"h": 9, "w": 12, "x": 12, "y": 27},
+        "yAxes": [
+          {"label": "Hit Rate %", "show": true, "min": 0, "max": 100},
+          {"show": false}
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [70], "type": "lt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "10s",
+          "handler": 1,
+          "name": "Low Cache Hit Rate",
+          "noDataState": "no_data",
+          "notifications": []
+        },
+        "targets": [
+          {
+            "expr": "avg(livestream_cache_hit_rate{cache_level=\"total\"})",
+            "legendFormat": "Total Cache Hit Rate",
+            "refId": "A"
+          }
+        ],
+        "thresholds": [
+          {"colorMode": "critical", "op": "lt", "value": 70, "fill": true, "line": true}
+        ]
+      },
+      {
+        "id": 17,
+        "title": "🎯 Performance Targets",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 36},
+        "collapsed": false
+      },
+      {
+        "id": 18,
+        "title": "1000+ User Capacity Test",
+        "type": "table",
+        "gridPos": {"h": 9, "w": 24, "x": 0, "y": 37},
+        "targets": [
+          {
+            "expr": "sum(livestream_concurrent_connections) by (room_id)",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "displayMode": "color-background",
+              "thresholds": {
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 800},
+                  {"color": "red", "value": 1000}
+                ]
+              }
+            }
+          }
+        },
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true, "__name__": true},
+              "renameByName": {"Value": "Concurrent Users", "room_id": "Room ID"}
+            }
+          }
+        ]
+      },
+      {
+        "id": 19,
+        "title": "📈 Alert Summary",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 46},
+        "collapsed": false
+      },
+      {
+        "id": 20,
+        "title": "Active Alerts",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 47},
+        "targets": [
+          {
+            "expr": "ALERTS{alertstate=\"firing\"}",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true, "__name__": true, "alertstate": true},
+              "renameByName": {
+                "alertname": "Alert",
+                "severity": "Severity",
+                "summary": "Summary"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 21,
+        "title": "Service Status",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 47},
+        "targets": [
+          {
+            "expr": "up{job=~\"livestream.*\"}",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "displayMode": "color-background",
+              "thresholds": {
+                "steps": [
+                  {"color": "red", "value": 0},
+                  {"color": "green", "value": 1}
+                ]
+              }
+            },
+            "mappings": [
+              {"options": {"0": {"text": "DOWN"}, "1": {"text": "UP"}}, "type": "value"}
+            ]
+          }
+        },
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true, "__name__": true},
+              "renameByName": {
+                "Value": "Status",
+                "instance": "Instance",
+                "job": "Service"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "name": "Critical Events",
+          "datasource": "Prometheus",
+          "enable": true,
+          "expr": "ALERTS{severity=\"critical\"}",
+          "iconColor": "red",
+          "titleFormat": "{{alertname}}"
+        }
+      ]
+    }
+  }
+}

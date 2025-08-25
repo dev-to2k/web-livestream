@@ -1,0 +1,412 @@
+config:
+  target: 'ws://localhost:4000'
+  phases:
+    # Warm-up phase
+    - duration: 30
+      arrivalRate: 1
+      rampTo: 10
+      name: "Warm-up"
+    
+    # Gradual ramp-up to 100 users
+    - duration: 60
+      arrivalRate: 10
+      rampTo: 50
+      name: "Initial ramp-up"
+    
+    # Ramp-up to 500 users
+    - duration: 120
+      arrivalRate: 50
+      rampTo: 200
+      name: "Mid-scale ramp-up"
+    
+    # Ramp-up to 1000 users (target load)
+    - duration: 180
+      arrivalRate: 200
+      rampTo: 500
+      name: "High-scale ramp-up"
+    
+    # Peak load test - 1000+ concurrent users
+    - duration: 300
+      arrivalRate: 500
+      rampTo: 1000
+      name: "Peak load test"
+    
+    # Sustained peak load
+    - duration: 600
+      arrivalRate: 1000
+      name: "Sustained peak load"
+    
+    # Spike test - sudden increase
+    - duration: 60
+      arrivalRate: 1000
+      rampTo: 1500
+      name: "Spike test"
+    
+    # Recovery test
+    - duration: 120
+      arrivalRate: 1500
+      rampTo: 100
+      name: "Recovery test"
+
+  processor: "./load-test-functions.js"
+  
+  # WebSocket configuration
+  ws:
+    # Connect timeout
+    connectTimeout: 10000
+    # Max reconnects
+    maxReconnects: 3
+    # Reconnect delay
+    reconnectDelay: 1000
+
+  # Performance thresholds
+  ensure:
+    # 99% of requests should complete within 100ms
+    - p99: 100
+    # 95% of requests should complete within 50ms  
+    - p95: 50
+    # Error rate should be less than 1%
+    - maxErrorRate: 1
+    # Connection success rate should be > 99%
+    - minSuccessRate: 99
+
+  # Variables for test data
+  variables:
+    roomPrefix: "loadtest"
+    userPrefix: "user"
+    messagePrefix: "Test message"
+
+  # Plugins for enhanced reporting
+  plugins:
+    metrics-by-endpoint:
+      useOnlyRequestNames: true
+    publish-metrics:
+      - type: prometheus
+        pushgateway: "http://localhost:9091"
+        prefix: "artillery"
+        tags:
+          - "test:live-streaming"
+          - "phase:load-test"
+
+scenarios:
+  # Scenario 1: Regular viewers (70% of users)
+  - name: "Regular Viewer"
+    weight: 70
+    engine: ws
+    flow:
+      # Connect to WebSocket
+      - connect:
+          url: "/socket.io/?EIO=4&transport=websocket&t={{$timestamp}}"
+      
+      # Wait for connection
+      - think: 1
+      
+      # Join a room as viewer
+      - function: "generateRoomId"
+      - emit:
+          channel: "join-room"
+          data:
+            roomId: "{{ roomId }}"
+            username: "{{ userPrefix }}-{{ $uuid }}"
+            isStreamer: false
+            userType: "viewer"
+            capabilities:
+              screen: { width: 1920, height: 1080 }
+              connection: { effectiveType: "4g", downlink: 10 }
+              userAgent: "Mozilla/5.0 (Load Test)"
+      
+      # Listen for room events
+      - function: "setupEventListeners"
+      
+      # Send periodic chat messages
+      - loop:
+          - think: 
+              min: 5
+              max: 30
+          - function: "generateChatMessage"
+          - emit:
+              channel: "chat-message"
+              data:
+                roomId: "{{ roomId }}"
+                message: "{{ chatMessage }}"
+                timestamp: "{{ $timestamp }}"
+          - function: "recordMessageSent"
+        count: 20
+      
+      # Stay connected for viewing period
+      - think:
+          min: 30
+          max: 300
+      
+      # Occasionally react to stream
+      - loop:
+          - think:
+              min: 10
+              max: 60
+          - emit:
+              channel: "stream-reaction"
+              data:
+                roomId: "{{ roomId }}"
+                reaction: "{{ $pick(['👍', '❤️', '😂', '🔥', '👏'] }}}"
+        count: 5
+      
+      # Leave room
+      - emit:
+          channel: "leave-room"
+          data:
+            roomId: "{{ roomId }}"
+      
+      # Disconnect
+      - function: "cleanup"
+
+  # Scenario 2: Premium viewers (20% of users)
+  - name: "Premium Viewer"
+    weight: 20
+    engine: ws
+    flow:
+      - connect:
+          url: "/socket.io/?EIO=4&transport=websocket&t={{$timestamp}}"
+      
+      - think: 1
+      
+      # Join as premium viewer
+      - function: "generateRoomId"
+      - emit:
+          channel: "join-room"
+          data:
+            roomId: "{{ roomId }}"
+            username: "premium-{{ $uuid }}"
+            isStreamer: false
+            userType: "premium_viewer"
+            capabilities:
+              screen: { width: 2560, height: 1440 }
+              connection: { effectiveType: "4g", downlink: 25 }
+              userAgent: "Mozilla/5.0 (Premium Load Test)"
+      
+      - function: "setupEventListeners"
+      
+      # More active messaging (premium users are more engaged)
+      - loop:
+          - think:
+              min: 2
+              max: 15
+          - function: "generateChatMessage"
+          - emit:
+              channel: "chat-message"
+              data:
+                roomId: "{{ roomId }}"
+                message: "{{ chatMessage }}"
+                timestamp: "{{ $timestamp }}"
+        count: 40
+      
+      # Request higher quality stream
+      - emit:
+          channel: "request-quality"
+          data:
+            roomId: "{{ roomId }}"
+            quality: "high"
+      
+      # Send gifts/donations
+      - loop:
+          - think:
+              min: 30
+              max: 120
+          - emit:
+              channel: "send-gift"
+              data:
+                roomId: "{{ roomId }}"
+                giftType: "{{ $pick(['star', 'heart', 'diamond', 'crown']) }}"
+                amount: "{{ $number(1, 100) }}"
+        count: 3
+      
+      - think:
+          min: 60
+          max: 600
+      
+      - emit:
+          channel: "leave-room"
+          data:
+            roomId: "{{ roomId }}"
+      
+      - function: "cleanup"
+
+  # Scenario 3: Streamers (5% of users)
+  - name: "Streamer"
+    weight: 5
+    engine: ws
+    flow:
+      - connect:
+          url: "/socket.io/?EIO=4&transport=websocket&t={{$timestamp}}"
+      
+      - think: 2
+      
+      # Create/join room as streamer
+      - function: "generateUniqueRoomId"
+      - emit:
+          channel: "create-room"
+          data:
+            roomId: "{{ uniqueRoomId }}"
+            username: "streamer-{{ $uuid }}"
+            isStreamer: true
+            userType: "streamer"
+            streamTitle: "Load Test Stream {{ $randomString() }}"
+            category: "{{ $pick(['Gaming', 'Music', 'Art', 'Talk', 'Education']) }}"
+            capabilities:
+              screen: { width: 1920, height: 1080 }
+              connection: { effectiveType: "4g", downlink: 50 }
+              camera: { width: 1920, height: 1080, frameRate: 30 }
+              microphone: { sampleRate: 48000, channels: 2 }
+      
+      - function: "setupStreamerListeners"
+      
+      # Start streaming (simulate WebRTC setup)
+      - emit:
+          channel: "start-stream"
+          data:
+            roomId: "{{ uniqueRoomId }}"
+            mediaConfig:
+              video: { width: 1920, height: 1080, frameRate: 30, bitrate: 2500000 }
+              audio: { sampleRate: 48000, channels: 2, bitrate: 128000 }
+      
+      # Periodic stream updates
+      - loop:
+          - think: 10
+          - function: "sendStreamStats"
+          - emit:
+              channel: "stream-stats"
+              data:
+                roomId: "{{ uniqueRoomId }}"
+                stats: "{{ streamStats }}"
+        count: 60
+      
+      # Respond to chat messages
+      - loop:
+          - think:
+              min: 15
+              max: 45
+          - function: "generateStreamerResponse"
+          - emit:
+              channel: "chat-message"
+              data:
+                roomId: "{{ uniqueRoomId }}"
+                message: "{{ streamerMessage }}"
+                timestamp: "{{ $timestamp }}"
+                isStreamer: true
+        count: 15
+      
+      # Stream for extended period
+      - think:
+          min: 300
+          max: 1800
+      
+      # End stream
+      - emit:
+          channel: "end-stream"
+          data:
+            roomId: "{{ uniqueRoomId }}"
+      
+      - function: "cleanup"
+
+  # Scenario 4: Mobile users (3% of users)
+  - name: "Mobile Viewer"
+    weight: 3
+    engine: ws
+    flow:
+      - connect:
+          url: "/socket.io/?EIO=4&transport=websocket&t={{$timestamp}}"
+      
+      - think: 2
+      
+      # Join with mobile constraints
+      - function: "generateRoomId"
+      - emit:
+          channel: "join-room"
+          data:
+            roomId: "{{ roomId }}"
+            username: "mobile-{{ $uuid }}"
+            isStreamer: false
+            userType: "viewer"
+            capabilities:
+              screen: { width: 375, height: 667 }
+              connection: { effectiveType: "3g", downlink: 1.5 }
+              userAgent: "Mozilla/5.0 (iPhone; Mobile Load Test)"
+      
+      # Request lower quality for mobile
+      - emit:
+          channel: "request-quality"
+          data:
+            roomId: "{{ roomId }}"
+            quality: "low"
+      
+      # Less frequent messaging (mobile users type less)
+      - loop:
+          - think:
+              min: 30
+              max: 120
+          - function: "generateChatMessage"
+          - emit:
+              channel: "chat-message"
+              data:
+                roomId: "{{ roomId }}"
+                message: "{{ chatMessage }}"
+        count: 5
+      
+      # Shorter session (mobile users have shorter attention spans)
+      - think:
+          min: 60
+          max: 300
+      
+      - emit:
+          channel: "leave-room"
+          data:
+            roomId: "{{ roomId }}"
+      
+      - function: "cleanup"
+
+  # Scenario 5: Anonymous users (2% of users)
+  - name: "Anonymous User"
+    weight: 2
+    engine: ws
+    flow:
+      - connect:
+          url: "/socket.io/?EIO=4&transport=websocket&t={{$timestamp}}"
+      
+      - think: 1
+      
+      # Join with minimal info
+      - function: "generateRoomId"
+      - emit:
+          channel: "join-room"
+          data:
+            roomId: "{{ roomId }}"
+            username: "anon-{{ $randomInt(1000, 9999) }}"
+            isStreamer: false
+            userType: "anonymous"
+            capabilities:
+              screen: { width: 1366, height: 768 }
+              connection: { effectiveType: "4g", downlink: 5 }
+      
+      # Very limited interaction
+      - loop:
+          - think:
+              min: 120
+              max: 300
+          - function: "generateSimpleMessage"
+          - emit:
+              channel: "chat-message"
+              data:
+                roomId: "{{ roomId }}"
+                message: "{{ simpleMessage }}"
+        count: 2
+      
+      # Short session
+      - think:
+          min: 30
+          max: 180
+      
+      - emit:
+          channel: "leave-room"
+          data:
+            roomId: "{{ roomId }}"
+      
+      - function: "cleanup"
