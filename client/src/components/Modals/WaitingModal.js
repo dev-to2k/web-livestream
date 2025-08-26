@@ -1,9 +1,8 @@
-import React from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "../UI/Button";
 import Modal from "../UI/Modal";
 import Spinner from "../UI/Spinner";
-import styles from './WaitingModal.module.css';
+import styles from "./WaitingModal.module.css";
 
 const WaitingModal = ({ isOpen, isStreamer }) => {
   const navigate = useNavigate();

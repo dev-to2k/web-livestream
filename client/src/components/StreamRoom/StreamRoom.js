@@ -156,8 +156,8 @@ const StreamRoom = ({ username }) => {
   if (!isConnected) {
     return (
       <div className={styles.streamContainer}>
-        <Spinner 
-          size="large" 
+        <Spinner
+          size="large"
           containerType="fullHeight"
           text="Đang kết nối..."
         />

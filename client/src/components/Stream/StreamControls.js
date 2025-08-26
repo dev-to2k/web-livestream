@@ -1,8 +1,8 @@
-import Button from "../UI/Button";
-import Toggle from "../UI/Toggle";
-import Spinner from "../UI/Spinner";
 import StreamErrorDisplay from "../StreamErrorDisplay";
-import styles from './StreamControls.module.css';
+import Button from "../UI/Button";
+import Spinner from "../UI/Spinner";
+import Toggle from "../UI/Toggle";
+import styles from "./StreamControls.module.css";
 
 const StreamControls = ({
   isStreaming,
@@ -16,7 +16,11 @@ const StreamControls = ({
   retryCount = 0,
   onDismissError = null,
 }) => {
-  console.log("🔵 StreamControls render:", { isStreamer, isStreaming, streamError });
+  console.log("🔵 StreamControls render:", {
+    isStreamer,
+    isStreaming,
+    streamError,
+  });
 
   if (!isStreamer) {
     console.log("🔴 StreamControls: Not streamer, returning null");
@@ -25,7 +29,9 @@ const StreamControls = ({
 
   return (
     <>
-      <div className={styles.streamerPrivileges}>👑 Chủ phòng - Quyền quản lý</div>
+      <div className={styles.streamerPrivileges}>
+        👑 Chủ phòng - Quyền quản lý
+      </div>
 
       <div className={styles.streamControls}>
         {!isStreaming ? (

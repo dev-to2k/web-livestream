@@ -1,24 +1,25 @@
-import React from 'react';
-import { createUserFriendlyError } from '../utils/streamErrors';
-import Spinner from './UI/Spinner';
-import styles from './StreamErrorDisplay.module.css';
+import { createUserFriendlyError } from "../utils/streamErrors";
+import styles from "./StreamErrorDisplay.module.css";
+import Spinner from "./UI/Spinner";
 
-const StreamErrorDisplay = ({ 
-  error, 
-  onRetry, 
-  onDismiss, 
+const StreamErrorDisplay = ({
+  error,
+  onRetry,
+  onDismiss,
   isRetrying = false,
   retryCount = 0,
-  maxRetries = 3
+  maxRetries = 3,
 }) => {
   if (!error) return null;
 
-  const friendlyError = typeof error === 'object' && error.type 
-    ? error 
-    : createUserFriendlyError(error);
+  const friendlyError =
+    typeof error === "object" && error.type
+      ? error
+      : createUserFriendlyError(error);
 
   const canRetry = friendlyError.canRetry && retryCount < maxRetries;
-  const showGuidance = friendlyError.guidance && friendlyError.guidance.length > 0;
+  const showGuidance =
+    friendlyError.guidance && friendlyError.guidance.length > 0;
 
   return (
     <div className={styles.streamError}>
@@ -26,11 +27,9 @@ const StreamErrorDisplay = ({
         <span className={styles.errorIcon}>❌</span>
         <h4 className={styles.errorTitle}>Lỗi Streaming</h4>
       </div>
-      
-      <div className={styles.errorMessage}>
-        {friendlyError.message}
-      </div>
-      
+
+      <div className={styles.errorMessage}>{friendlyError.message}</div>
+
       {showGuidance && (
         <div className={styles.errorGuidance}>
           <h5>Hướng dẫn khắc phục:</h5>
@@ -41,10 +40,10 @@ const StreamErrorDisplay = ({
           </ol>
         </div>
       )}
-      
+
       <div className={styles.errorActions}>
         {canRetry && (
-          <button 
+          <button
             className={styles.retryBtn}
             onClick={onRetry}
             disabled={isRetrying}
@@ -59,18 +58,15 @@ const StreamErrorDisplay = ({
             )}
           </button>
         )}
-        
+
         {onDismiss && (
-          <button 
-            className={styles.dismissBtn}
-            onClick={onDismiss}
-          >
+          <button className={styles.dismissBtn} onClick={onDismiss}>
             Đóng
           </button>
         )}
-        
+
         {!canRetry && (
-          <button 
+          <button
             className={styles.reloadBtn}
             onClick={() => window.location.reload()}
           >
@@ -78,7 +74,7 @@ const StreamErrorDisplay = ({
           </button>
         )}
       </div>
-      
+
       {friendlyError.nextSteps && (
         <div className={styles.errorNextSteps}>
           <small>
@@ -86,18 +82,25 @@ const StreamErrorDisplay = ({
           </small>
         </div>
       )}
-      
-      {process.env.NODE_ENV === 'development' && friendlyError.originalError && (
-        <details className={styles.errorDebug}>
-          <summary>Debug Info</summary>
-          <pre>{JSON.stringify({
-            type: friendlyError.type,
-            originalMessage: friendlyError.originalError.message,
-            timestamp: friendlyError.timestamp,
-            context: friendlyError.context
-          }, null, 2)}</pre>
-        </details>
-      )}
+
+      {process.env.NODE_ENV === "development" &&
+        friendlyError.originalError && (
+          <details className={styles.errorDebug}>
+            <summary>Debug Info</summary>
+            <pre>
+              {JSON.stringify(
+                {
+                  type: friendlyError.type,
+                  originalMessage: friendlyError.originalError.message,
+                  timestamp: friendlyError.timestamp,
+                  context: friendlyError.context,
+                },
+                null,
+                2
+              )}
+            </pre>
+          </details>
+        )}
     </div>
   );
 };
