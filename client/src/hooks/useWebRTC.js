@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useToast } from "../contexts/ToastContext";
 import { MEDIA_CONSTRAINTS, RTC_CONFIG } from "../utils/constants";
 import { createRetryStrategy, handleStreamError } from "../utils/streamErrors";
 
@@ -8,6 +9,7 @@ const useWebRTC = (socket, roomId) => {
   const [connectionState, setConnectionState] = useState("idle"); // idle, connecting, connected, failed, closed
   const [streamState, setStreamState] = useState("idle"); // idle, requesting, active, error
   const [lastError, setLastError] = useState(null);
+  const { showWebRTCError, showError, showWarning, showSuccess } = useToast();
 
   // Enhanced media constraints with fallback options
   const getMediaConstraints = useCallback((quality = "standard") => {
@@ -99,16 +101,39 @@ const useWebRTC = (socket, roomId) => {
         if (state === "connected") {
           console.log("🚀 WebRTC: Peer connection established successfully!");
           setLastError(null);
+          showSuccess("Kết nối streaming thành công!", {
+            title: "Streaming",
+            duration: 3000,
+          });
         } else if (state === "failed") {
           console.error("🔴 WebRTC: Connection failed");
-          setLastError({
+          const error = {
             type: "connection",
             message: "Peer connection failed",
             timestamp: Date.now(),
+          };
+          setLastError(error);
+          showWebRTCError(error, {
+            title: "Lỗi kết nối WebRTC",
+            onRetry: () => {
+              // Retry connection
+              try {
+                peerConnection.restartIce();
+              } catch (restartError) {
+                console.error("Failed to restart ICE:", restartError);
+              }
+            },
           });
         } else if (state === "disconnected") {
           console.log(
             "🟡 WebRTC: Connection disconnected, may reconnect automatically"
+          );
+          showWarning(
+            "Kết nối streaming bị gián đoạn. Đang thử kết nối lại...",
+            {
+              title: "Streaming",
+              duration: 4000,
+            }
           );
         }
       };
@@ -120,11 +145,20 @@ const useWebRTC = (socket, roomId) => {
 
         if (iceState === "failed") {
           console.log("🟡 WebRTC: ICE connection failed, attempting restart");
+          showWarning("Kết nối mạng gặp sự cố. Đang thử khôi phục...", {
+            title: "Lỗi kết nối",
+            duration: 5000,
+          });
           try {
             peerConnection.restartIce();
           } catch (error) {
             console.error("🔴 WebRTC: Failed to restart ICE:", error);
+            showError("Không thể khôi phục kết nối mạng. Vui lòng thử lại.", {
+              title: "Lỗi kết nối",
+            });
           }
+        } else if (iceState === "connected" || iceState === "completed") {
+          console.log("🚀 WebRTC: ICE connection established");
         }
       };
 
@@ -193,7 +227,15 @@ const useWebRTC = (socket, roomId) => {
         stopHealthMonitoring();
       };
     },
-    [socket, roomId, monitorConnectionHealth]
+    [
+      socket,
+      monitorConnectionHealth,
+      showSuccess,
+      showWebRTCError,
+      showWarning,
+      showError,
+      roomId,
+    ]
   );
 
   const handleOffer = useCallback(
@@ -420,12 +462,22 @@ const useWebRTC = (socket, roomId) => {
 
       try {
         // First attempt with standard quality
-        return await attemptStream(getMediaConstraints("standard"), 1);
+        const result = await attemptStream(getMediaConstraints("standard"), 1);
+        showSuccess("Stream đã bắt đầu thành công!", {
+          title: "Streaming",
+          duration: 3000,
+        });
+        return result;
       } catch (error) {
         console.error("🔴 useWebRTC: Primary attempt failed:", error);
 
         const errorInfo = handleStreamError(error);
         setLastError(errorInfo);
+
+        // Show initial error toast
+        showWebRTCError(error, {
+          title: "Lỗi khởi động stream",
+        });
 
         if (retryStrategy.shouldRetry(error)) {
           const nextAttempt = retryStrategy.getNextAttempt();
@@ -435,13 +487,26 @@ const useWebRTC = (socket, roomId) => {
               `🟡 useWebRTC: Retrying with ${nextAttempt.quality} quality after ${nextAttempt.delay}ms`
             );
 
+            showWarning(
+              `Đang thử lại với chất lượng ${nextAttempt.quality}...`,
+              {
+                title: "Thử lại",
+                duration: nextAttempt.delay + 1000,
+              }
+            );
+
             // Wait before retry
             await new Promise((resolve) =>
               setTimeout(resolve, nextAttempt.delay)
             );
 
             try {
-              return await attemptStream(nextAttempt.constraints, 2);
+              const result = await attemptStream(nextAttempt.constraints, 2);
+              showSuccess("Stream đã bắt đầu thành công sau khi thử lại!", {
+                title: "Streaming",
+                duration: 4000,
+              });
+              return result;
             } catch (retryError) {
               console.error("🔴 useWebRTC: Retry attempt failed:", retryError);
 
@@ -451,12 +516,29 @@ const useWebRTC = (socket, roomId) => {
                 console.log(
                   `🟡 useWebRTC: Final attempt with ${finalAttempt.quality} quality after ${finalAttempt.delay}ms`
                 );
+
+                showWarning(
+                  `Lần thử cuối với chất lượng ${finalAttempt.quality}...`,
+                  {
+                    title: "Thử lại lần cuối",
+                    duration: finalAttempt.delay + 1000,
+                  }
+                );
+
                 await new Promise((resolve) =>
                   setTimeout(resolve, finalAttempt.delay)
                 );
 
                 try {
-                  return await attemptStream(finalAttempt.constraints, 3);
+                  const result = await attemptStream(
+                    finalAttempt.constraints,
+                    3
+                  );
+                  showSuccess("Stream đã bắt đầu với chất lượng cơ bản!", {
+                    title: "Streaming",
+                    duration: 4000,
+                  });
+                  return result;
                 } catch (finalError) {
                   console.error(
                     "🔴 useWebRTC: All attempts failed:",
@@ -465,6 +547,15 @@ const useWebRTC = (socket, roomId) => {
                   const finalErrorInfo = handleStreamError(finalError);
                   setStreamState("error");
                   setLastError(finalErrorInfo);
+
+                  showWebRTCError(finalError, {
+                    title: "Không thể khởi động stream",
+                    onRetry: () => {
+                      // Retry the entire startStream process
+                      startStream(localVideoRef);
+                    },
+                  });
+
                   throw finalErrorInfo;
                 }
               }
@@ -472,12 +563,26 @@ const useWebRTC = (socket, roomId) => {
               const retryErrorInfo = handleStreamError(retryError);
               setStreamState("error");
               setLastError(retryErrorInfo);
+
+              showWebRTCError(retryError, {
+                title: "Lỗi khi thử lại",
+                onRetry: () => {
+                  startStream(localVideoRef);
+                },
+              });
+
               throw retryErrorInfo;
             }
           }
         }
 
         setStreamState("error");
+        showWebRTCError(errorInfo, {
+          title: "Không thể khởi động stream",
+          onRetry: () => {
+            startStream(localVideoRef);
+          },
+        });
         throw errorInfo;
       } finally {
         // Clean up peer connection if it was created but stream failed
@@ -527,16 +632,45 @@ const useWebRTC = (socket, roomId) => {
     setStreamState("idle");
     setConnectionState("idle");
     setLastError(null);
-    console.log("🔵 useWebRTC: Stream cleanup completed");
-  }, []);
 
-  // Cleanup on unmount
+    // Show success notification
+    showSuccess("Đã dừng stream thành công!", {
+      title: "Streaming",
+      duration: 2000,
+    });
+
+    console.log("🔵 useWebRTC: Stream cleanup completed");
+  }, [showSuccess]);
+
+  // Cleanup on unmount only (not on stopStream changes)
   useEffect(() => {
     return () => {
       console.log("🔵 useWebRTC: Component unmounting, cleaning up");
-      stopStream();
+      // Call stopStream directly to avoid dependency issues
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((track) => {
+          track.stop();
+          console.log(
+            `🔵 useWebRTC: Stopped ${track.kind} track (${track.label})`
+          );
+        });
+        localStreamRef.current = null;
+      }
+
+      if (peerConnectionRef.current) {
+        const senders = peerConnectionRef.current.getSenders();
+        senders.forEach((sender) => {
+          if (sender.track) {
+            peerConnectionRef.current.removeTrack(sender);
+          }
+        });
+        peerConnectionRef.current.close();
+        peerConnectionRef.current = null;
+        console.log("🔵 useWebRTC: Peer connection closed");
+      }
     };
-  }, [stopStream]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount/unmount
 
   return useMemo(
     () => ({

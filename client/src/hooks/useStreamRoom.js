@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "../contexts/ToastContext";
 
 const useStreamRoom = (socket, roomId, username, isStreamer) => {
   const navigate = useNavigate();
+  const { showSuccess, showError, showWarning, showInfo } = useToast();
 
   // Room state
   const [viewerCount, setViewerCount] = useState(0);
@@ -75,6 +77,12 @@ const useStreamRoom = (socket, roomId, username, isStreamer) => {
       console.log("🔵 CLIENT: User joined", { joinedUser, newCount: count });
       setViewerCount(count);
       addSystemMessage(`${joinedUser} đã tham gia phòng`);
+      if (isStreamer) {
+        showInfo(`${joinedUser} đã tham gia phòng`, {
+          title: "Người xem mới",
+          duration: 2000,
+        });
+      }
     });
 
     socket.on("user-left", ({ username: leftUser, viewerCount: count }) => {
@@ -88,6 +96,10 @@ const useStreamRoom = (socket, roomId, username, isStreamer) => {
       if (isStreamer) {
         if (autoAccept) {
           socket.emit("accept-user", { userId, roomId });
+          showInfo(`Tự động chấp nhận ${requestUsername} vào phòng`, {
+            title: "Tự động chấp nhận",
+            duration: 2000,
+          });
         } else {
           setPendingUsers((prev) => {
             const existing = prev.find((user) => user.userId === userId);
@@ -96,6 +108,10 @@ const useStreamRoom = (socket, roomId, username, isStreamer) => {
               if (prev.length === 0) {
                 setShowAcceptModal(true);
                 playNotificationSound();
+                showWarning(`${requestUsername} muốn tham gia phòng`, {
+                  title: "Yêu cầu tham gia",
+                  duration: 5000,
+                });
               }
               return newList;
             }
@@ -114,11 +130,19 @@ const useStreamRoom = (socket, roomId, username, isStreamer) => {
     socket.on("join-accepted", () => {
       setIsWaitingApproval(false);
       addSystemMessage("Bạn đã được chấp nhận vào phòng");
+      showSuccess("Bạn đã được chấp nhận vào phòng!", {
+        title: "Tham gia phòng",
+        duration: 3000,
+      });
     });
 
     socket.on("join-rejected", () => {
       setIsWaitingApproval(false);
       addSystemMessage("Bạn đã bị từ chối vào phòng");
+      showError("Bạn đã bị từ chối vào phòng. Đang chuyển về trang chủ...", {
+        title: "Từ chối tham gia",
+        duration: 2000,
+      });
       setTimeout(() => navigate("/"), 2000);
     });
 
@@ -130,6 +154,34 @@ const useStreamRoom = (socket, roomId, username, isStreamer) => {
     // Stream events
     socket.on("stream-ended", () => {
       addSystemMessage("Stream đã kết thúc");
+      showWarning("Stream đã kết thúc", {
+        title: "Streaming",
+        duration: 3000,
+      });
+    });
+
+    // Error handling for socket events
+    socket.on("error", (error) => {
+      console.error("🔴 CLIENT: Socket error:", error);
+      showError(`Lỗi: ${error.message || "Lỗi không xác định"}`, {
+        title: "Lỗi phòng",
+        duration: 5000,
+      });
+    });
+
+    socket.on("room-not-found", () => {
+      showError("Không tìm thấy phòng. Đang chuyển về trang chủ...", {
+        title: "Phòng không tồn tại",
+        duration: 3000,
+      });
+      setTimeout(() => navigate("/"), 3000);
+    });
+
+    socket.on("room-full", () => {
+      showError("Phòng đã đầy. Không thể tham gia.", {
+        title: "Phòng đầy",
+        duration: 5000,
+      });
     });
 
     return () => {
@@ -143,6 +195,9 @@ const useStreamRoom = (socket, roomId, username, isStreamer) => {
       socket.off("join-rejected");
       socket.off("chat-message");
       socket.off("stream-ended");
+      socket.off("error");
+      socket.off("room-not-found");
+      socket.off("room-full");
     };
   }, [
     socket,
@@ -150,9 +205,9 @@ const useStreamRoom = (socket, roomId, username, isStreamer) => {
     username,
     isStreamer,
     autoAccept,
-    navigate,
-    addSystemMessage,
-    playNotificationSound,
+    // Remove navigate, addSystemMessage, playNotificationSound from dependencies
+    // to prevent frequent re-runs. These functions are stable and don't need
+    // to be dependencies.
   ]);
 
   // Actions
@@ -188,6 +243,7 @@ const useStreamRoom = (socket, roomId, username, isStreamer) => {
   const acceptUser = useCallback(
     (userId) => {
       if (socket) {
+        const user = pendingUsers.find((u) => u.userId === userId);
         socket.emit("accept-user", { userId, roomId });
         setPendingUsers((prev) =>
           prev.filter((user) => user.userId !== userId)
@@ -196,14 +252,22 @@ const useStreamRoom = (socket, roomId, username, isStreamer) => {
         if (pendingUsers.length <= 1) {
           setShowAcceptModal(false);
         }
+
+        if (user) {
+          showSuccess(`Đã chấp nhận ${user.username} vào phòng`, {
+            title: "Chấp nhận thành viên",
+            duration: 2000,
+          });
+        }
       }
     },
-    [socket, roomId, pendingUsers.length]
+    [socket, roomId, pendingUsers, showSuccess]
   );
 
   const rejectUser = useCallback(
     (userId) => {
       if (socket) {
+        const user = pendingUsers.find((u) => u.userId === userId);
         socket.emit("reject-user", { userId, roomId });
         setPendingUsers((prev) =>
           prev.filter((user) => user.userId !== userId)
@@ -212,52 +276,93 @@ const useStreamRoom = (socket, roomId, username, isStreamer) => {
         if (pendingUsers.length <= 1) {
           setShowAcceptModal(false);
         }
+
+        if (user) {
+          showWarning(`Đã từ chối ${user.username}`, {
+            title: "Từ chối thành viên",
+            duration: 2000,
+          });
+        }
       }
     },
-    [socket, roomId, pendingUsers.length]
+    [socket, roomId, pendingUsers, showWarning]
   );
 
   const acceptAllUsers = useCallback(() => {
     if (socket) {
+      const userCount = pendingUsers.length;
       pendingUsers.forEach((user) => {
         socket.emit("accept-user", { userId: user.userId, roomId });
       });
       setPendingUsers([]);
       setShowAcceptModal(false);
+
+      if (userCount > 0) {
+        showSuccess(`Đã chấp nhận tất cả ${userCount} người dùng vào phòng`, {
+          title: "Chấp nhận tất cả",
+          duration: 3000,
+        });
+      }
     }
-  }, [socket, roomId, pendingUsers]);
+  }, [socket, roomId, pendingUsers, showSuccess]);
 
   const rejectAllUsers = useCallback(() => {
     if (socket) {
+      const userCount = pendingUsers.length;
       pendingUsers.forEach((user) => {
         socket.emit("reject-user", { userId: user.userId, roomId });
       });
       setPendingUsers([]);
       setShowAcceptModal(false);
+
+      if (userCount > 0) {
+        showWarning(`Đã từ chối tất cả ${userCount} người dùng`, {
+          title: "Từ chối tất cả",
+          duration: 3000,
+        });
+      }
     }
-  }, [socket, roomId, pendingUsers]);
+  }, [socket, roomId, pendingUsers, showWarning]);
 
-  return {
-    // State
-    viewerCount,
-    messages,
-    autoAccept,
-    pendingUsers,
-    showAcceptModal,
-    isWaitingApproval,
+  return useMemo(
+    () => ({
+      // State
+      viewerCount,
+      messages,
+      autoAccept,
+      pendingUsers,
+      showAcceptModal,
+      isWaitingApproval,
 
-    // Actions
-    sendMessage,
-    toggleAutoAccept,
-    acceptUser,
-    rejectUser,
-    acceptAllUsers,
-    rejectAllUsers,
-    setShowAcceptModal,
+      // Actions
+      sendMessage,
+      toggleAutoAccept,
+      acceptUser,
+      rejectUser,
+      acceptAllUsers,
+      rejectAllUsers,
+      setShowAcceptModal,
 
-    // Helpers
-    addSystemMessage,
-  };
+      // Helpers
+      addSystemMessage,
+    }),
+    [
+      viewerCount,
+      messages,
+      autoAccept,
+      pendingUsers,
+      showAcceptModal,
+      isWaitingApproval,
+      sendMessage,
+      toggleAutoAccept,
+      acceptUser,
+      rejectUser,
+      acceptAllUsers,
+      rejectAllUsers,
+      setShowAcceptModal,
+      addSystemMessage,
+    ]
+  );
 };
 
 export default useStreamRoom;

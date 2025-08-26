@@ -1,21 +1,35 @@
 /* WaitingModal Component Styles */
-@import '../../styles/variables.css';
+@import "../../styles/variables.css";
 
 .waitingOverlay {
   -webkit-backdrop-filter: var(--backdrop-blur-md);
   backdrop-filter: var(--backdrop-blur-md);
   background: rgba(0, 0, 0, 0.8);
+  z-index: var(--z-index-modal);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 .waitingModal {
   max-width: 400px;
   text-align: center;
-  background: linear-gradient(135deg, var(--color-surface) 0%, var(--color-background) 100%);
+  background: linear-gradient(
+    135deg,
+    var(--color-surface) 0%,
+    var(--color-background) 100%
+  );
   border: 2px solid var(--color-surface-lighter);
+  z-index: calc(var(--z-index-modal) + 1);
+  position: relative;
 }
 
 .waitingContent {
   padding: var(--space-3xl);
+  position: relative;
+  z-index: 10;
 }
 
 .waitingSpinner {
